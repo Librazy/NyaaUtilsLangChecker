@@ -1,0 +1,53 @@
+group 'org.librazy'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+def toolsJar = project.findProperty('toolsJar') ?: project.file("${System.getenv('JAVA_HOME')}/lib/tools.jar")
+if (!toolsJar) {
+    throw new GradleException("Cannot find tools.jar. Either use -PtoolsJar=/path/to/tools.jar or set JAVA_HOME to a JDK which includes tools.jar")
+}
+
+repositories {
+    jcenter()
+    mavenCentral()
+
+    maven {
+        name 'Spigot'
+        url 'https://hub.spigotmc.org/nexus/content/groups/public/'
+    }
+
+    maven {
+        name 'sonatype-snapshots'
+        url 'https://oss.sonatype.org/content/repositories/snapshots'
+    }
+}
+
+configurations {
+    // configuration that holds jars to include in the jar
+    extraLibs
+}
+
+
+dependencies {
+    compile files(toolsJar)
+    compile('org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT')
+    extraLibs 'org.yaml:snakeyaml:1.19-SNAPSHOT'
+    extraLibs ('commons-lang:commons-lang:2.6'){
+        transitive = false
+    }
+    extraLibs ('org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT') {
+        transitive = false
+    }
+    extraLibs ('com.google.guava:guava:21.0') {
+        transitive = false
+    }
+}
+
+jar {
+    from {
+        configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
