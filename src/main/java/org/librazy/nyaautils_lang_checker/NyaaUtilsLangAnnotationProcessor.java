@@ -46,7 +46,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
             super.init(processingEnvi);
             Filer filer = processingEnvi.getFiler();
             FileObject fileObject = filer.getResource(StandardLocation.CLASS_OUTPUT, "", "langChecker");
-            String path = URLDecoder.decode(fileObject.toUri().toString(), StandardCharsets.UTF_8.name()).replaceAll("file:/", "").replaceAll("classes[\\\\/]main[\\\\/]langChecker", "resources/main/lang");
+            String path = "/" + URLDecoder.decode(fileObject.toUri().toString().replaceFirst("build[\\\\/]classes[\\\\/]main[\\\\/]langChecker", "src/main/resources/lang"), StandardCharsets.UTF_8.name()).replaceFirst("file:/", "");
             File f = new File(path);
             processingEnvi.getMessager().printMessage(Diagnostic.Kind.NOTE, "Lang resources path:" + f.getCanonicalPath());
             File[] files = f.listFiles(file -> file.isFile() && file.getPath().endsWith(".yml"));
