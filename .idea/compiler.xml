@@ -2,8 +2,8 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel>
-      <module name="NyaautilsLangChecker_main" target="1.8" />
-      <module name="NyaautilsLangChecker_test" target="1.8" />
+      <module name="NyaaUtilsLangChecker_main" target="1.8" />
+      <module name="NyaaUtilsLangChecker_test" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>
