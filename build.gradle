@@ -1,7 +1,7 @@
-group 'org.librazy'
-version '1.0-SNAPSHOT'
-
 apply plugin: 'java'
+apply plugin: 'maven-publish'
+
+group 'org.librazy'
 
 sourceCompatibility = 1.8
 
@@ -49,5 +49,21 @@ dependencies {
 jar {
     from {
         configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId "org.librazy"
+            artifactId "NyaaUtilsLangChecker"
+            version '1.0-SNAPSHOT'
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "$buildDir/repo"
+        }
     }
 }
