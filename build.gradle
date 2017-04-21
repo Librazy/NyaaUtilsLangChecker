@@ -5,9 +5,9 @@ group 'org.librazy'
 
 sourceCompatibility = 1.8
 
-def toolsJar = project.findProperty('toolsJar') ?: project.file("${System.getenv('JAVA_HOME')}/lib/tools.jar")
+def toolsJar = project.file("${System.getenv('JAVA_HOME')}/lib/tools.jar")
 if (!toolsJar) {
-    throw new GradleException("Cannot find tools.jar. Either use -PtoolsJar=/path/to/tools.jar or set JAVA_HOME to a JDK which includes tools.jar")
+    throw new GradleException("Cannot find tools.jar. Set JAVA_HOME to a JDK which includes tools.jar")
 }
 
 repositories {
