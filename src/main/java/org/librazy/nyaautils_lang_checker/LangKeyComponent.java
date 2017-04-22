@@ -5,12 +5,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import static java.lang.annotation.ElementType.LOCAL_VARIABLE;
-import static java.lang.annotation.ElementType.PARAMETER;
+import static java.lang.annotation.ElementType.*;
 
 @Retention(RetentionPolicy.CLASS)
-@Target({ElementType.FIELD, PARAMETER, LOCAL_VARIABLE})
+@Target({ElementType.FIELD, PARAMETER, LOCAL_VARIABLE, METHOD, TYPE, ANNOTATION_TYPE, TYPE_USE})
 public @interface LangKeyComponent {
     String[] value() default {};
     LangKeyComponentType type() default LangKeyComponentType.PREFIX;
+    boolean isInternal() default false;
 }

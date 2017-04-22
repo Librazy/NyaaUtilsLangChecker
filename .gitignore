@@ -81,4 +81,9 @@ gradle-app.setting
 
 # # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
 # gradle/wrapper/gradle-wrapper.properties
-!/.idea/gradle.xml
+.idea/kotlinc.xml
+.idea/modules/NyaaUtilsLangChecker.iml
+.idea/modules/NyaaUtilsLangChecker_main.iml
+.idea/modules/NyaaUtilsLangChecker_test.iml
+.idea/misc.xml
+!/lib/tools.jar

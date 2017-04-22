@@ -5,11 +5,6 @@ group 'org.librazy'
 
 sourceCompatibility = 1.8
 
-def toolsJar = project.file("${System.getenv('JAVA_HOME')}/lib/tools.jar")
-if (!toolsJar) {
-    throw new GradleException("Cannot find tools.jar. Set JAVA_HOME to a JDK which includes tools.jar")
-}
-
 repositories {
     jcenter()
     mavenCentral()
@@ -32,7 +27,7 @@ configurations {
 
 
 dependencies {
-    compile files(toolsJar)
+    compile files("lib/tools.jar")
     compile('org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT')
     extraLibs 'org.yaml:snakeyaml:1.19-SNAPSHOT'
     extraLibs ('commons-lang:commons-lang:2.6'){
