@@ -38,7 +38,7 @@ Annotate your function parameter that recieve a lang key and string constants co
     }
 ```
 
-If it find a key that didn't exist in <lang>.yml, it'll complain at compile time!
+If it find a key that didn't exist in lang.yml, it'll complain at compile time!
 e.g.
 ```bash
 Note: Lang resources path:/home/travis/build/Librazy/nyaautils/src/main/resources/lang
