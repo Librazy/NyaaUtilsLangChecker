@@ -200,44 +200,11 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     public void finished(TaskEvent taskEvt) {
         try {
             if (taskEvt.getKind() == TaskEvent.Kind.ANALYZE && (map.size() != 0 || internalMap.size() != 0)) {
-                taskEvt.getCompilationUnit().accept(new TreePathScanner<Void, Void>() {
+                taskEvt.getCompilationUnit().accept(new TreeScanner<Void, Void>() {
+                    //from jdk8u/langtools/src/share/classes/com/sun/source/util/TreePathScanner.java
                     /**
-                     * Returns the current path for the node, as built up by the currently
-                     * active set of scan calls.
-                     * @return the current path
-                     */
-                    public TreePath getCurrentPath() {
-                        return path;
-                    }
-
-                    private TreePath path;
-
-                    /**
-                     * Scans a tree from a position identified by a TreePath.
-                     * @param path the path identifying the node to be scanned
-                     * @param p a parameter value passed to visit methods
-                     * @return the result value from the visit method
-                     */
-                    public Void scan(TreePath path, Void p) {
-                        this.path = path;
-                        try {
-                            return path.getLeaf().accept(this, p);
-                        } finally {
-                            this.path = null;
-                        }
-                    }
-
-                    /**
-                     * Scans a single node.
+                     * Scan a single node.
                      * The current path is updated for the duration of the scan.
-                     *
-                     * @apiNote This method should normally only be called by the
-                     * scanner's {@code visit} methods, as part of an ongoing scan
-                     * initiated by {@link #scan(TreePath,Object) scan(TreePath, P)}.
-                     * The one exception is that it may also be called to initiate
-                     * a full scan of a {@link CompilationUnitTree}.
-                     *
-                     * @return the result value from the visit method
                      */
                     @Override
                     public Void scan(Tree tree, Void p) {
@@ -253,6 +220,8 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                         }
                     }
 
+                    private TreePath path;
+
                     @Override
                     public Void visitCompilationUnit(CompilationUnitTree node, Void p) {
                         path = new TreePath(null, node);
@@ -263,7 +232,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     @Override
                     public Void visitMethodInvocation(MethodInvocationTree methodInv, Void v) {
                         try {
-                            ExecutableElement method = (ExecutableElement) trees.getElement(getCurrentPath());
+                            ExecutableElement method = (ExecutableElement) trees.getElement(path);
                             if (method.getParameters().stream().anyMatch(var -> var.getAnnotation(LangKey.class) != null)) {
                                 List<LangKey> langKeyList = method.getParameters().stream().map(var -> var.getAnnotation(LangKey.class)).collect(Collectors.toList());
                                 List<? extends ExpressionTree> rawArgumentList = methodInv.getArguments();
@@ -279,7 +248,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     @Override
                     public Void visitNewClass(NewClassTree methodInv, Void v) {
                         try {
-                            ExecutableElement method = (ExecutableElement) trees.getElement(getCurrentPath());
+                            ExecutableElement method = (ExecutableElement) trees.getElement(path);
                             if (method.getParameters().stream().anyMatch(var -> var.getAnnotation(LangKey.class) != null)) {
                                 List<LangKey> langKeyList = method.getParameters().stream().map(var -> var.getAnnotation(LangKey.class)).collect(Collectors.toList());
                                 List<? extends ExpressionTree> rawArgumentList = methodInv.getArguments();
