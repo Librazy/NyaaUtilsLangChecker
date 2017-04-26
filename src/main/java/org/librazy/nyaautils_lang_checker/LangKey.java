@@ -13,4 +13,5 @@ public @interface LangKey {
     String[] value() default {};
     LangKeyType type() default LangKeyType.KEY;
     boolean isInternal() default false;
+    boolean skipCheck() default false;
 }

@@ -318,7 +318,6 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     ExecutableElement executableElement = (ExecutableElement) mtElement;
                     mtType = executableElement.getReturnType();
                 }
-                TypeElement mtTypeElement = (TypeElement) typeUtils.asElement(mtType);
                 if (mtElement.getAnnotation(LangKey.class) == null && mtType.getAnnotation(LangKey.class) == null) {
                     ExpressionTree methodSelect = methodInvocationTree.getMethodSelect();
                     if (methodSelect instanceof MemberSelectTree && (mtElement.getSimpleName().toString().equals("name") || mtElement.getSimpleName().toString().equals("toString"))) {
@@ -391,22 +390,14 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     }
 
     private boolean checkExpectingAnnotation(boolean canBePrefix, boolean canBeSuffix,  LangKey expectingAnnotation) {
-        if (canBePrefix && canBeSuffix && (expectingAnnotation.type() != LangKeyType.KEY)) {
-            return false;
-        }
-        if (canBePrefix && !canBeSuffix && (expectingAnnotation.type() != LangKeyType.PREFIX)) {
-            return false;
-        }
-        if (!canBePrefix && canBeSuffix && (expectingAnnotation.type() != LangKeyType.SUFFIX)) {
-            return false;
-        }
-        if (!canBePrefix && !canBeSuffix && (expectingAnnotation.type() != LangKeyType.INFIX)) {
-            return false;
-        }
-        return true;
+        return !(canBePrefix && canBeSuffix && (expectingAnnotation.type() != LangKeyType.KEY))
+                && !(canBePrefix && !canBeSuffix && (expectingAnnotation.type() != LangKeyType.PREFIX))
+                && !(!canBePrefix && canBeSuffix && (expectingAnnotation.type() != LangKeyType.SUFFIX))
+                && !(!canBePrefix && !canBeSuffix && (expectingAnnotation.type() != LangKeyType.INFIX));
     }
 
     private void checkKeyPrefix(LangKey annotation, String prefix, Tree tree, CompilationUnitTree cut) {
+        if (annotation.skipCheck()) return;
         final String[] checkedLang = annotation.value();
         if (prefix.startsWith("internal.")) {
             if (!internalLoaded) return;
@@ -429,6 +420,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     }
 
     private void checkKeyPrefix(LangKey annotation, String prefix, Element element) {
+        if (annotation.skipCheck()) return;
         final String[] checkedLang = annotation.value();
         if (prefix.startsWith("internal.")) {
             if (!internalLoaded) return;
@@ -451,6 +443,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     }
 
     private void checkKeyInSuffix(LangKey annotation, String fix, Element element) {
+        if (annotation.skipCheck()) return;
         final String[] checkedLang = annotation.value();
         Set<Map.Entry<String, Map<String, String>>> entrySet = annotation.isInternal() ? internalMap.entrySet() : map.entrySet();
         boolean isSuffix = annotation.type() == LangKeyType.SUFFIX;
@@ -462,6 +455,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     }
 
     private void checkKeyInSuffix(LangKey annotation, String fix, Tree tree, CompilationUnitTree cut, boolean isSuffix) {
+        if (annotation.skipCheck()) return;
         List<Set<Map.Entry<String, Map<String, String>>>> entrySets = Stream.of(internalMap.entrySet(), map.entrySet()).collect(Collectors.toList());
         final String[] checkedLang = annotation.value();
         Map<String, Boolean> chk = checkInSuffix(fix, checkedLang, entrySets, isSuffix);
@@ -472,6 +466,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     }
 
     private void checkKey(LangKey annotation, String key, Tree tree, CompilationUnitTree cut) {
+        if (annotation.skipCheck()) return;
         if (key.startsWith("internal.")) {
             if (!internalLoaded) return;
             for (Map.Entry<String, Map<String, String>> lang : internalMap.entrySet()) {
@@ -493,6 +488,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     }
 
     private void checkKey(LangKey annotation, String key, Element element) {
+        if (annotation.skipCheck()) return;
         if (key.startsWith("internal.")) {
             if (!internalLoaded) return;
             for (Map.Entry<String, Map<String, String>> lang : internalMap.entrySet()) {
