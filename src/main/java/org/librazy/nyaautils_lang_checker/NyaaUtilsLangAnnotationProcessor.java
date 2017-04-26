@@ -25,7 +25,12 @@ import static com.sun.source.tree.Tree.Kind.*;
 
 @SupportedAnnotationTypes({
         "org.librazy.nyaautils_lang_checker.LangKey",
-        "org.librazy.nyaautils_lang_checker.LangKeyComponent"
+        "org.librazy.nyaautils_lang_checker.LangKeyComponent",
+})
+@SupportedOptions({
+        "CLASS_OUTPUT_PATH",
+        "LANG_FILE_PATH",
+        "LANG_FILE_EXT",
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implements Plugin, TaskListener {
@@ -44,12 +49,17 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
             trees = Trees.instance(processingEnvi);
             typeUtils = processingEnvironment.getTypeUtils();
             super.init(processingEnvi);
+            Map<String, String> options = processingEnv.getOptions();
+            String pathRegex = options.get("CLASS_OUTPUT_PATH") == null ? "build/classes/(main/)?" : options.get("CLASS_OUTPUT_PATH");
+            String langRegex = options.get("LANG_FILE_PATH") == null ? "src/main/resources/lang/" : options.get("LANG_FILE_PATH");
+            String langExt = options.get("LANG_FILE_EXT") == null ? ".yml" : options.get("LANG_FILE_EXT");
             Filer filer = processingEnvi.getFiler();
             FileObject fileObject = filer.getResource(StandardLocation.CLASS_OUTPUT, "", "langChecker");
-            String path = "/" + URLDecoder.decode(fileObject.toUri().toString().replaceFirst("build[\\\\/]classes[\\\\/]main[\\\\/]langChecker", "src/main/resources/lang"), StandardCharsets.UTF_8.name()).replaceFirst("file:/", "");
+            String path = "/" + URLDecoder.decode(fileObject.toUri().toString().replaceFirst(pathRegex + "langChecker", langRegex), StandardCharsets.UTF_8.name()).replaceFirst("file:/", "");
             File f = new File(path);
+
             processingEnvi.getMessager().printMessage(Diagnostic.Kind.NOTE, "Lang resources path:" + f.getCanonicalPath());
-            File[] files = f.listFiles(file -> file.isFile() && file.getPath().endsWith(".yml"));
+            File[] files = f.listFiles(file -> file.isFile() && file.getPath().endsWith(langExt));
             if (files == null) {
                 processingEnvi.getMessager().printMessage(Diagnostic.Kind.WARNING, "Lang resources not found!");
                 return;
@@ -191,7 +201,6 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         try {
             if (taskEvt.getKind() == TaskEvent.Kind.ANALYZE && (map.size() != 0 || internalMap.size() != 0)) {
                 taskEvt.getCompilationUnit().accept(new TreePathScanner<Void, Void>() {
-
                     /**
                      * Returns the current path for the node, as built up by the currently
                      * active set of scan calls.
