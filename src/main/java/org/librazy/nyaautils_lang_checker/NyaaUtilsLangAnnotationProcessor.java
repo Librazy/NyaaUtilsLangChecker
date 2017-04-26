@@ -9,6 +9,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
@@ -18,6 +19,7 @@ import java.io.*;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,7 +27,6 @@ import static com.sun.source.tree.Tree.Kind.*;
 
 @SupportedAnnotationTypes({
         "org.librazy.nyaautils_lang_checker.LangKey",
-        "org.librazy.nyaautils_lang_checker.LangKeyComponent",
 })
 @SupportedOptions({
         "CLASS_OUTPUT_PATH",
@@ -89,7 +90,13 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     Object constValue = ((VariableElement) element).getConstantValue();
                     if (constValue == null || !(constValue instanceof String)) continue;
                     String key = (String) constValue;
-                    checkKey(annotation, key, element);
+                    if (annotation.type() == LangKeyType.KEY) {
+                        checkKey(annotation, key, element);
+                    } else if (annotation.type() == LangKeyType.PREFIX) {
+                        checkKeyPrefix(annotation, key, element);
+                    } else {
+                        checkKeyInSuffix(annotation, key, element);
+                    }
                 } else if (element instanceof TypeElement) {
                     LangKey annotation = element.getAnnotation(LangKey.class);
                     TypeElement te = ((TypeElement) element);
@@ -99,30 +106,17 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                                   .stream()
                                   .filter(e -> e.getKind() == ElementKind.ENUM_CONSTANT)
                                   .map(e -> (VariableElement) e).collect(Collectors.toList());
-                        variableElements.forEach(e -> checkKey(annotation, e.toString(), element));
-                    }
-                }
-            }
-            for (final Element element : roundEnv.getElementsAnnotatedWith(LangKeyComponent.class)) {
-                if (element instanceof VariableElement) {
-                    LangKeyComponent annotation = element.getAnnotation(LangKeyComponent.class);
-                    Object constValue = ((VariableElement) element).getConstantValue();
-                    if (constValue == null || !(constValue instanceof String)) continue;
-                    String key = (String) constValue;
-                    checkKeyInSuffix(annotation, key, element);
-                } else if (element instanceof TypeElement) {
-                    LangKeyComponent annotation = element.getAnnotation(LangKeyComponent.class);
-                    TypeElement te = ((TypeElement) element);
-                    if (te.getKind() == ElementKind.ENUM) {
-                        List<VariableElement> variableElements =
-                                te.getEnclosedElements()
-                                  .stream()
-                                  .filter(e -> e.getKind() == ElementKind.ENUM_CONSTANT)
-                                  .map(e -> (VariableElement) e).collect(Collectors.toList());
-                        if (annotation.type() == LangKeyComponentType.PREFIX) {
-                            variableElements.forEach(e -> checkKeyPrefix(annotation, e.toString(), element));
-                        } else {
-                            variableElements.forEach(e -> checkKeyInSuffix(annotation, e.toString(), element));
+                        switch (annotation.type()){
+                            case KEY:
+                                variableElements.forEach(e -> checkKey(annotation, e.toString(), element));
+                                break;
+                            case PREFIX:
+                                variableElements.forEach(e -> checkKeyPrefix(annotation, e.toString(), element));
+                                break;
+                            case INFIX:
+                            case SUFFIX:
+                                variableElements.forEach(e -> checkKeyInSuffix(annotation, e.toString(), element));
+                                break;
                         }
                     }
                 }
@@ -268,101 +262,129 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     }
 
     private void visitArgList(List<LangKey> langKeyList, List<? extends ExpressionTree> rawArgumentList, TaskEvent taskEvt) {
-        List<TreePath> argmuentPathList = rawArgumentList.stream().map(arg -> TreePath.getPath(taskEvt.getCompilationUnit(), arg)).collect(Collectors.toList());
-        List<TypeMirror> argmuentTypeList = argmuentPathList.stream().map(argp -> trees.getTypeMirror(argp)).collect(Collectors.toList());
-        List<Element> argmuentElementList = argmuentPathList.stream().map(argp -> trees.getElement(argp)).collect(Collectors.toList());
-
-
         Iterator<LangKey> langKeyIterator = langKeyList.iterator();
         Iterator<? extends ExpressionTree> rawArgmuentIterator = rawArgumentList.iterator();
-        Iterator<TreePath> argmuentPathIterator = argmuentPathList.iterator();
-        Iterator<TypeMirror> argmuentTypeIterator = argmuentTypeList.iterator();
-        Iterator<Element> argmuentElementIterator = argmuentElementList.iterator();
 
-        while (langKeyIterator.hasNext() && argmuentPathIterator.hasNext()) {
+        while (langKeyIterator.hasNext() && rawArgmuentIterator.hasNext()) {
             LangKey annotation = langKeyIterator.next();
-            TreePath path = argmuentPathIterator.next();
-            TypeMirror type = argmuentTypeIterator.next();
-            Element element = argmuentElementIterator.next();
             ExpressionTree tree = rawArgmuentIterator.next();
             if (annotation == null) continue;
 
-            if (element == null) {
-                if (tree.getKind() == STRING_LITERAL) {
-                    String key = (String) ((LiteralTree) tree).getValue();
-                    checkKey(annotation, key, tree, taskEvt.getCompilationUnit());
+            visitExpressionTreeSuffix(taskEvt, annotation, tree, true, true);
+        }
+    }
+
+    private void visitExpressionTreeSuffix(TaskEvent taskEvt, LangKey expectingAnnotation, ExpressionTree expressionTree, boolean canBePrefix, boolean canBeSuffix) {
+        TreePath path = TreePath.getPath(taskEvt.getCompilationUnit(), expressionTree);
+        TypeMirror typeMirror = trees.getTypeMirror(path);
+        Element element = trees.getElement(path);
+        Consumer<String> treesWarn = (String warn)-> trees.printMessage(Diagnostic.Kind.WARNING, warn, expressionTree, taskEvt.getCompilationUnit());
+
+        if (element == null) {
+            if (expressionTree.getKind() == STRING_LITERAL) {
+                String value = (String) ((LiteralTree) expressionTree).getValue();
+                if(canBePrefix && canBeSuffix) {
+                    checkKey(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
+                } else if(canBePrefix){
+                    checkKeyPrefix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
                 } else {
-                    if (tree.getKind() == PLUS) {
-                        BinaryTree bt = (BinaryTree) tree;
-                        ExpressionTree lo = bt.getLeftOperand();
-                        ExpressionTree ro = bt.getRightOperand();
-
-                        TreePath loPath = TreePath.getPath(taskEvt.getCompilationUnit(), lo);
-                        TypeMirror loType = trees.getTypeMirror(loPath);
-                        Element loElement = trees.getElement(loPath);
-
-                        TreePath roPath = TreePath.getPath(taskEvt.getCompilationUnit(), ro);
-                        TypeMirror roType = trees.getTypeMirror(roPath);
-                        Element roElement = trees.getElement(roPath);
-
-                        if (lo.getKind() == STRING_LITERAL) {
-                            String prefix = (String) ((LiteralTree) lo).getValue();
-                            checkKeyPrefix(annotation, prefix, tree, taskEvt.getCompilationUnit());
-                        } else if (loElement != null && loElement.getAnnotation(LangKeyComponent.class) == null && loType.getAnnotation(LangKeyComponent.class) == null) {
-                            trees.printMessage(Diagnostic.Kind.WARNING, "Using not annotated element as lang key prefix:", lo, taskEvt.getCompilationUnit());
-                        } else if (loElement != null) {
-                            LangKeyComponent anno = loElement.getAnnotation(LangKeyComponent.class);
-                            if (anno == null) {
-                                anno = loType.getAnnotation(LangKeyComponent.class);
-                            }
-                            if (anno.type() != LangKeyComponentType.SUFFIX) {
-                                trees.printMessage(Diagnostic.Kind.WARNING, "Using element annotated with LangKeyComponent." + anno.type() + "as lang key prefix:", lo, taskEvt.getCompilationUnit());
-                            }
-                        }
-
-                        if (ro.getKind() == STRING_LITERAL) {
-                            String suffix = (String) ((LiteralTree) ro).getValue();
-                            checkKeySuffix(annotation, suffix, tree, taskEvt.getCompilationUnit());
-                        } else if (roElement != null && roElement.getAnnotation(LangKeyComponent.class) == null && roType.getAnnotation(LangKeyComponent.class) == null) {
-                            if (ro.getKind() == METHOD_INVOCATION && roElement.getEnclosingElement() != null && roElement.getEnclosingElement().getKind() == ElementKind.CLASS) {
-                                MethodInvocationTree mt = (MethodInvocationTree) ro;
-                                TreePath mtPath = TreePath.getPath(taskEvt.getCompilationUnit(), ((MemberSelectTree) mt.getMethodSelect()).getExpression());
-                                Element mtElement = trees.getElement(mtPath);
-                                TypeMirror tm = mtElement.asType();
-                                if (mtElement instanceof ExecutableElement) {
-                                    ExecutableElement mexe = (ExecutableElement) mtElement;
-                                    tm = mexe.getReturnType();
-                                }
-                                if (mtElement.getAnnotation(LangKeyComponent.class) == null && (typeUtils.asElement(tm) == null || typeUtils.asElement(tm).getAnnotation(LangKeyComponent.class) == null)) {
-                                    trees.printMessage(Diagnostic.Kind.WARNING, "Using not annotated enum as lang key suffix:", ro, taskEvt.getCompilationUnit());
-                                }
-                            } else {
-                                trees.printMessage(Diagnostic.Kind.WARNING, "Using not annotated element as lang key suffix:", ro, taskEvt.getCompilationUnit());
-                            }
-                        } else if (roElement != null) {
-                            LangKeyComponent anno = roElement.getAnnotation(LangKeyComponent.class);
-                            if (anno == null) {
-                                anno = roType.getAnnotation(LangKeyComponent.class);
-                            }
-                            if (anno.type() != LangKeyComponentType.SUFFIX) {
-                                trees.printMessage(Diagnostic.Kind.WARNING, "Using element annotated with LangKeyComponent." + anno.type() + " as lang key suffix:", ro, taskEvt.getCompilationUnit());
-                            }
-                        }
-                    } else {
-                        trees.printMessage(Diagnostic.Kind.WARNING, "Using raw value as lang key:", path.getLeaf(), taskEvt.getCompilationUnit());
-                    }
+                    checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), canBeSuffix);
                 }
-            } else {
-                if (element.getAnnotation(LangKey.class) == null && type.getAnnotation(LangKey.class) == null) {
-                    if (tree.getKind() == IDENTIFIER || tree.getKind() == MEMBER_SELECT) {
-                        trees.printMessage(Diagnostic.Kind.WARNING, "Using not annotated variable as lang key:", tree, taskEvt.getCompilationUnit());
-                    } else if (tree.getKind() == METHOD_INVOCATION) {
-                        trees.printMessage(Diagnostic.Kind.WARNING, "Using not annotated method return value as lang key:", tree, taskEvt.getCompilationUnit());
-                    } else {
-                        trees.printMessage(Diagnostic.Kind.WARNING, "Using not annotated element as lang key:", tree, taskEvt.getCompilationUnit());
-                    }
+            }else {
+                if (expressionTree.getKind() == PLUS) {
+                    BinaryTree bt = (BinaryTree) expressionTree;
+                    ExpressionTree lo = bt.getLeftOperand();
+                    ExpressionTree ro = bt.getRightOperand();
+                    visitExpressionTreeSuffix(taskEvt, expectingAnnotation, lo, canBePrefix, false);
+                    visitExpressionTreeSuffix(taskEvt, expectingAnnotation, ro, false, canBeSuffix);
+                } else if(expressionTree.getKind() == PARENTHESIZED){
+                    ParenthesizedTree pt = (ParenthesizedTree) expressionTree;
+                    visitExpressionTreeSuffix(taskEvt, expectingAnnotation, pt.getExpression(), canBePrefix, canBeSuffix);
+                } else if(expressionTree.getKind() == CONDITIONAL_EXPRESSION){
+                    ConditionalExpressionTree ct = (ConditionalExpressionTree) expressionTree;
+                    visitExpressionTreeSuffix(taskEvt, expectingAnnotation, ct.getTrueExpression(), canBePrefix, canBeSuffix);
+                    visitExpressionTreeSuffix(taskEvt, expectingAnnotation, ct.getFalseExpression(), canBePrefix, canBeSuffix);
+                }else {
+                    treesWarn.accept("Using raw value " + expressionTree.getKind().toString().toLowerCase() +" as lang key:");
                 }
             }
+        } else if (element.getAnnotation(LangKey.class) == null && typeMirror.getAnnotation(LangKey.class) == null) {
+            if (expressionTree.getKind() == METHOD_INVOCATION) {
+                MethodInvocationTree methodInvocationTree = (MethodInvocationTree) expressionTree;
+                TreePath mtPath = TreePath.getPath(taskEvt.getCompilationUnit(), methodInvocationTree);
+                Element mtElement = trees.getElement(mtPath);
+                TypeMirror mtType = mtElement.asType();
+                if (mtElement instanceof ExecutableElement) {
+                    ExecutableElement executableElement = (ExecutableElement) mtElement;
+                    mtType = executableElement.getReturnType();
+                }
+                TypeElement mtTypeElement = (TypeElement) typeUtils.asElement(mtType);
+                if (mtElement.getAnnotation(LangKey.class) == null && mtType.getAnnotation(LangKey.class) == null) {
+                    ExpressionTree methodSelect = methodInvocationTree.getMethodSelect();
+                    if (methodSelect instanceof MemberSelectTree && (mtElement.getSimpleName().toString().equals("name") || mtElement.getSimpleName().toString().equals("toString"))) {
+                        MemberSelectTree memberSelectTree = (MemberSelectTree) methodSelect;
+                        ExpressionTree receiver = memberSelectTree.getExpression();
+                        TreePath rPath = TreePath.getPath(taskEvt.getCompilationUnit(), receiver);
+                        Element rcElement = trees.getElement(rPath);
+                        TypeMirror rcType = rcElement.asType();
+                        if (rcType.getKind() == TypeKind.EXECUTABLE) {
+                            ExecutableElement executableRcElement = (ExecutableElement) rcElement;
+                            rcType = executableRcElement.getReturnType();
+                        }
+                        TypeElement rcTypeElement = (TypeElement) typeUtils.asElement(rcType);
+                        if (rcTypeElement == null) {
+                            treesWarn.accept("Using not annotated enum as lang key suffix:");
+                        } else {
+                            LangKey actualAnnotation = rcElement.getAnnotation(LangKey.class);
+                            if (actualAnnotation == null) {
+                                actualAnnotation = rcTypeElement.getAnnotation(LangKey.class);
+                            }
+                            if (actualAnnotation == null) {
+                                treesWarn.accept("Using not annotated enum(-like) as lang key suffix:");
+                            } else {
+                                checkActualAnnotation(canBePrefix, canBeSuffix, treesWarn, actualAnnotation);
+                            }
+                        }
+                    } else {
+                        treesWarn.accept("Using not annotated method return as lang key suffix:");
+                    }
+                } else {
+                    LangKey actualAnnotation = mtElement.getAnnotation(LangKey.class);
+                    if (actualAnnotation == null) {
+                        actualAnnotation = mtType.getAnnotation(LangKey.class);
+                    }
+                    checkActualAnnotation(canBePrefix, canBeSuffix, treesWarn, actualAnnotation);
+                }
+            } else {
+                if (expressionTree.getKind() == IDENTIFIER || expressionTree.getKind() == MEMBER_SELECT) {
+                    treesWarn.accept("Using not annotated variable as lang key:");
+                } else {
+                    treesWarn.accept( "Using not annotated element as lang key:");
+                }
+            }
+        } else {
+            LangKey actualAnnotation = element.getAnnotation(LangKey.class);
+            if (actualAnnotation == null) {
+                actualAnnotation = typeMirror.getAnnotation(LangKey.class);
+            }
+            if (actualAnnotation.type() != expectingAnnotation.type()) {
+                treesWarn.accept( "Expecting " + expectingAnnotation.type().toString().toLowerCase() + ", found " + actualAnnotation.type().toString().toLowerCase() +":");
+            }
+        }
+    }
+
+    private void checkActualAnnotation(boolean canBePrefix, boolean canBeSuffix, Consumer<String> treesWarn, LangKey actualAnnotation) {
+        if (canBePrefix && canBeSuffix && (actualAnnotation.type() != LangKeyType.KEY)) {
+            treesWarn.accept("Expecting key, but found " + actualAnnotation.type().toString().toLowerCase() + " :");
+        }
+        if (canBePrefix && !canBeSuffix && (actualAnnotation.type() != LangKeyType.PREFIX)) {
+            treesWarn.accept("Expecting prefix, but found " + actualAnnotation.type().toString().toLowerCase() + " :");
+        }
+        if (!canBePrefix && canBeSuffix && (actualAnnotation.type() != LangKeyType.SUFFIX)) {
+            treesWarn.accept("Expecting suffix, but found " + actualAnnotation.type().toString().toLowerCase() + " :");
+        }
+        if (!canBePrefix && !canBeSuffix && (actualAnnotation.type() != LangKeyType.INFIX)) {
+            treesWarn.accept("Expecting infix, but found " + actualAnnotation.type().toString().toLowerCase() + " :");
         }
     }
 
@@ -388,7 +410,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         }
     }
 
-    private void checkKeyPrefix(LangKeyComponent annotation, String prefix, Element element) {
+    private void checkKeyPrefix(LangKey annotation, String prefix, Element element) {
         final String[] checkedLang = annotation.value();
         if (prefix.startsWith("internal.")) {
             if (!internalLoaded) return;
@@ -410,10 +432,10 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         }
     }
 
-    private void checkKeyInSuffix(LangKeyComponent annotation, String fix, Element element) {
+    private void checkKeyInSuffix(LangKey annotation, String fix, Element element) {
         final String[] checkedLang = annotation.value();
         Set<Map.Entry<String, Map<String, String>>> entrySet = annotation.isInternal() ? internalMap.entrySet() : map.entrySet();
-        boolean isSuffix = annotation.type() == LangKeyComponentType.SUFFIX;
+        boolean isSuffix = annotation.type() == LangKeyType.SUFFIX;
         Map<String, Boolean> chk = checkInSuffix(fix, checkedLang, Stream.of(entrySet).collect(Collectors.toList()), isSuffix);
         chk.forEach((k, v) -> {
             if (!v)
@@ -421,10 +443,10 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         });
     }
 
-    private void checkKeySuffix(LangKey annotation, String fix, Tree tree, CompilationUnitTree cut) {
+    private void checkKeyInSuffix(LangKey annotation, String fix, Tree tree, CompilationUnitTree cut, boolean isSuffix) {
         List<Set<Map.Entry<String, Map<String, String>>>> entrySets = Stream.of(internalMap.entrySet(), map.entrySet()).collect(Collectors.toList());
         final String[] checkedLang = annotation.value();
-        Map<String, Boolean> chk = checkInSuffix(fix, checkedLang, entrySets, true);
+        Map<String, Boolean> chk = checkInSuffix(fix, checkedLang, entrySets, isSuffix);
         chk.forEach((k, v) -> {
             if (!v)
                 trees.printMessage(Diagnostic.Kind.WARNING, "Key suffix " + fix + " not found in" + k, tree, cut);
