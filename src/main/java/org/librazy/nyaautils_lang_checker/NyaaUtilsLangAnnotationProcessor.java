@@ -44,30 +44,30 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     private static Types typeUtils;
     private static boolean internalLoaded;
     @Override
-    public synchronized void init(ProcessingEnvironment processingEnvi) {
+    public synchronized void init(ProcessingEnvironment processingEnv) {
         try {
-            processingEnvironment = processingEnvi;
-            trees = Trees.instance(processingEnvi);
+            processingEnvironment = processingEnv;
+            trees = Trees.instance(processingEnv);
             typeUtils = processingEnvironment.getTypeUtils();
-            super.init(processingEnvi);
-            Map<String, String> options = processingEnv.getOptions();
+            super.init(processingEnv);
+            Map<String, String> options = this.processingEnv.getOptions();
             String pathRegex = options.get("CLASS_OUTPUT_PATH") == null ? "build/classes/(main/)?" : options.get("CLASS_OUTPUT_PATH");
             String langRegex = options.get("LANG_FILE_PATH") == null ? "src/main/resources/lang/" : options.get("LANG_FILE_PATH");
             String langExt = options.get("LANG_FILE_EXT") == null ? ".yml" : options.get("LANG_FILE_EXT");
-            Filer filer = processingEnvi.getFiler();
+            Filer filer = processingEnv.getFiler();
             FileObject fileObject = filer.getResource(StandardLocation.CLASS_OUTPUT, "", "langChecker");
             String path = "/" + URLDecoder.decode(fileObject.toUri().toString().replaceFirst(pathRegex + "langChecker", langRegex), StandardCharsets.UTF_8.name()).replaceFirst("file:/", "");
             File f = new File(path);
 
-            processingEnvi.getMessager().printMessage(Diagnostic.Kind.NOTE, "Lang resources path:" + f.getCanonicalPath());
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Lang resources path:" + f.getCanonicalPath());
             File[] files = f.listFiles(file -> file.isFile() && file.getPath().endsWith(langExt));
             if (files == null) {
-                processingEnvi.getMessager().printMessage(Diagnostic.Kind.WARNING, "Lang resources not found!");
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "Lang resources not found!");
                 return;
             }
             for (File file : files) {
                 try {
-                    processingEnvi.getMessager().printMessage(Diagnostic.Kind.NOTE, file.getCanonicalPath());
+                    processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, file.getCanonicalPath());
                     langFiles.add(file);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -263,11 +263,11 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
 
     private void visitArgList(List<LangKey> langKeyList, List<? extends ExpressionTree> rawArgumentList, TaskEvent taskEvt) {
         Iterator<LangKey> langKeyIterator = langKeyList.iterator();
-        Iterator<? extends ExpressionTree> rawArgmuentIterator = rawArgumentList.iterator();
+        Iterator<? extends ExpressionTree> rawArgumentIterator = rawArgumentList.iterator();
 
-        while (langKeyIterator.hasNext() && rawArgmuentIterator.hasNext()) {
+        while (langKeyIterator.hasNext() && rawArgumentIterator.hasNext()) {
             LangKey annotation = langKeyIterator.next();
-            ExpressionTree tree = rawArgmuentIterator.next();
+            ExpressionTree tree = rawArgumentIterator.next();
             if (annotation == null) continue;
 
             visitExpressionTreeSuffix(taskEvt, annotation, tree, true, true);
