@@ -368,7 +368,9 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                 actualAnnotation = typeMirror.getAnnotation(LangKey.class);
             }
             if (actualAnnotation.type() != expectingAnnotation.type()) {
-                treesWarn.accept( "Expecting " + expectingAnnotation.type().toString().toLowerCase() + ", found " + actualAnnotation.type().toString().toLowerCase() +":");
+                if (checkExpectingAnnotation(canBePrefix, canBeSuffix, expectingAnnotation)) {
+                    treesWarn.accept("Expecting " + expectingAnnotation.type().toString().toLowerCase() + ", found " + actualAnnotation.type().toString().toLowerCase() + ":");
+                }
             }
         }
     }
@@ -386,6 +388,22 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         if (!canBePrefix && !canBeSuffix && (actualAnnotation.type() != LangKeyType.INFIX)) {
             treesWarn.accept("Expecting infix, but found " + actualAnnotation.type().toString().toLowerCase() + " :");
         }
+    }
+
+    private boolean checkExpectingAnnotation(boolean canBePrefix, boolean canBeSuffix,  LangKey expectingAnnotation) {
+        if (canBePrefix && canBeSuffix && (expectingAnnotation.type() != LangKeyType.KEY)) {
+            return false;
+        }
+        if (canBePrefix && !canBeSuffix && (expectingAnnotation.type() != LangKeyType.PREFIX)) {
+            return false;
+        }
+        if (!canBePrefix && canBeSuffix && (expectingAnnotation.type() != LangKeyType.SUFFIX)) {
+            return false;
+        }
+        if (!canBePrefix && !canBeSuffix && (expectingAnnotation.type() != LangKeyType.INFIX)) {
+            return false;
+        }
+        return true;
     }
 
     private void checkKeyPrefix(LangKey annotation, String prefix, Tree tree, CompilationUnitTree cut) {
