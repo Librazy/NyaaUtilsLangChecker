@@ -22,6 +22,7 @@ repositories {
 dependencies {
     compile 'org.librazy:NyaaUtilsLangChecker:1.0-SNAPSHOT'
     processor 'org.librazy:NyaaUtilsLangChecker:1.0-SNAPSHOT'
+    processor 'org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT'
 }
 
 compileJava {
