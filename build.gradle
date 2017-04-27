@@ -33,9 +33,6 @@ dependencies {
     extraLibs ('commons-lang:commons-lang:2.6'){
         transitive = false
     }
-    extraLibs ('org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT') {
-        transitive = false
-    }
     extraLibs ('com.google.guava:guava:21.0') {
         transitive = false
     }

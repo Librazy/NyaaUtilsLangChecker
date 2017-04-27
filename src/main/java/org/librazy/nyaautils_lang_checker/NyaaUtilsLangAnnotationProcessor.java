@@ -1,5 +1,6 @@
 package org.librazy.nyaautils_lang_checker;
 
+import com.google.common.collect.HashBasedTable;
 import com.sun.source.tree.*;
 import com.sun.source.util.*;
 import org.bukkit.ChatColor;
@@ -16,10 +17,12 @@ import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 import java.io.*;
+import java.lang.reflect.Constructor;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -268,13 +271,58 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         while (langKeyIterator.hasNext() && rawArgumentIterator.hasNext()) {
             LangKey annotation = langKeyIterator.next();
             ExpressionTree tree = rawArgumentIterator.next();
-            if (annotation == null) continue;
-
-            visitExpressionTreeSuffix(taskEvt, annotation, tree, true, true);
+            Consumer<String> treesWarn = (String warn) -> trees.printMessage(Diagnostic.Kind.WARNING, warn, tree, taskEvt.getCompilationUnit());
+            if (annotation != null) {
+                HashBasedTable<String, String, String> valueEntries = visitExpressionTree(taskEvt, annotation, tree, true, true);
+                if (valueEntries != null && !valueEntries.isEmpty()) {
+                    if (valueEntries.values().stream().anyMatch(str -> Pattern.compile("(%[sdf]|%\\.\\df)").matcher(str).find())) {
+                        List<Object> objects = new ArrayList<>();
+                        rawArgumentIterator.forEachRemaining(argTree -> {
+                            TypeMirror tm = trees.getTypeMirror(trees.getPath(taskEvt.getCompilationUnit(), argTree));
+                            if (tm.getKind().isPrimitive()) {
+                                tm = typeUtils.boxedClass(typeUtils.getPrimitiveType(tm.getKind())).asType();
+                            }
+                            try {
+                                Class<?> clazz = Class.forName(tm.toString());
+                                Constructor<?> ctor;
+                                try {
+                                    ctor = clazz.getConstructor();
+                                } catch (NoSuchMethodException noSuchMethodException) {
+                                    try {
+                                        ctor = clazz.getConstructor(int.class);
+                                    } catch (NoSuchMethodException noSuchMethodException2) {
+                                        ctor = clazz.getConstructor(double.class);
+                                    }
+                                }
+                                try {
+                                    objects.add(ctor.newInstance());
+                                } catch (IllegalArgumentException illegalArgumentException) {
+                                    try {
+                                        objects.add(ctor.newInstance(1));
+                                    } catch (IllegalArgumentException illegalArgumentException2) {
+                                        objects.add(ctor.newInstance(0.1));
+                                    }
+                                }
+                            } catch (Exception e) {
+                                treesWarn.accept("Unsupported type used as lang formatter argument: " + tm.toString());
+                                valueEntries.clear();
+                            }
+                        });
+                        valueEntries.cellSet().forEach(s -> {
+                            try {
+                                new Formatter().format(s.getValue(), objects.toArray());
+                            } catch (IllegalFormatException e) {
+                                treesWarn.accept("Corrupted key " + s.getColumnKey() + " in " + s.getRowKey() + ": " + s.getValue());
+                            }
+                        });
+                    }
+                }
+                return;
+            }
         }
     }
 
-    private void visitExpressionTreeSuffix(TaskEvent taskEvt, LangKey expectingAnnotation, ExpressionTree expressionTree, boolean canBePrefix, boolean canBeSuffix) {
+    private HashBasedTable<String, String, String>  visitExpressionTree(TaskEvent taskEvt, LangKey expectingAnnotation, final ExpressionTree expressionTree, boolean canBePrefix, boolean canBeSuffix) {
         TreePath path = TreePath.getPath(taskEvt.getCompilationUnit(), expressionTree);
         TypeMirror typeMirror = trees.getTypeMirror(path);
         Element element = trees.getElement(path);
@@ -284,7 +332,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
             if (expressionTree.getKind() == STRING_LITERAL) {
                 String value = (String) ((LiteralTree) expressionTree).getValue();
                 if(canBePrefix && canBeSuffix) {
-                    checkKey(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
+                    return checkKey(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
                 } else if(canBePrefix){
                     checkKeyPrefix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
                 } else {
@@ -295,15 +343,15 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     BinaryTree bt = (BinaryTree) expressionTree;
                     ExpressionTree lo = bt.getLeftOperand();
                     ExpressionTree ro = bt.getRightOperand();
-                    visitExpressionTreeSuffix(taskEvt, expectingAnnotation, lo, canBePrefix, false);
-                    visitExpressionTreeSuffix(taskEvt, expectingAnnotation, ro, false, canBeSuffix);
+                    visitExpressionTree(taskEvt, expectingAnnotation, lo, canBePrefix, false);
+                    visitExpressionTree(taskEvt, expectingAnnotation, ro, false, canBeSuffix);
                 } else if(expressionTree.getKind() == PARENTHESIZED){
                     ParenthesizedTree pt = (ParenthesizedTree) expressionTree;
-                    visitExpressionTreeSuffix(taskEvt, expectingAnnotation, pt.getExpression(), canBePrefix, canBeSuffix);
+                    visitExpressionTree(taskEvt, expectingAnnotation, pt.getExpression(), canBePrefix, canBeSuffix);
                 } else if(expressionTree.getKind() == CONDITIONAL_EXPRESSION){
                     ConditionalExpressionTree ct = (ConditionalExpressionTree) expressionTree;
-                    visitExpressionTreeSuffix(taskEvt, expectingAnnotation, ct.getTrueExpression(), canBePrefix, canBeSuffix);
-                    visitExpressionTreeSuffix(taskEvt, expectingAnnotation, ct.getFalseExpression(), canBePrefix, canBeSuffix);
+                    visitExpressionTree(taskEvt, expectingAnnotation, ct.getTrueExpression(), canBePrefix, canBeSuffix);
+                    visitExpressionTree(taskEvt, expectingAnnotation, ct.getFalseExpression(), canBePrefix, canBeSuffix);
                 }else {
                     treesWarn.accept("Using raw value " + expressionTree.getKind().toString().toLowerCase() +" as lang key:");
                 }
@@ -372,6 +420,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                 }
             }
         }
+        return null;
     }
 
     private void checkActualAnnotation(boolean canBePrefix, boolean canBeSuffix, Consumer<String> treesWarn, LangKey actualAnnotation) {
@@ -465,15 +514,18 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         });
     }
 
-    private void checkKey(LangKey annotation, String key, Tree tree, CompilationUnitTree cut) {
-        if (annotation.skipCheck()) return;
+    private HashBasedTable<String, String, String>  checkKey(LangKey annotation, String key, Tree tree, CompilationUnitTree cut) {
+        if (annotation.skipCheck()) return null;
+        HashBasedTable<String, String, String>  value = HashBasedTable.create();
         if (key.startsWith("internal.")) {
-            if (!internalLoaded) return;
+            if (!internalLoaded) return null;
             for (Map.Entry<String, Map<String, String>> lang : internalMap.entrySet()) {
                 if (annotation.value().length > 0 && Stream.of(annotation.value()).noneMatch(lang.getKey()::startsWith))
                     continue;
                 if (lang.getValue().get(key) == null) {
                     trees.printMessage(Diagnostic.Kind.WARNING, "Key " + key + " not found in internal lang " + lang.getKey(), tree, cut);
+                } else {
+                    value.put(lang.getKey(), key, lang.getValue().get(key));
                 }
             }
         } else {
@@ -482,9 +534,12 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     continue;
                 if (lang.getValue().get(key) == null) {
                     trees.printMessage(Diagnostic.Kind.WARNING, "Key " + key + " not found in lang " + lang.getKey(), tree, cut);
+                } else {
+                    value.put(lang.getKey(), key, lang.getValue().get(key));
                 }
             }
         }
+        return value;
     }
 
     private void checkKey(LangKey annotation, String key, Element element) {
