@@ -21,6 +21,7 @@ import java.lang.reflect.Constructor;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -32,16 +33,18 @@ import static com.sun.source.tree.Tree.Kind.*;
         "org.librazy.nyaautils_lang_checker.LangKey",
 })
 @SupportedOptions({
-        "CLASS_OUTPUT_PATH",
-        "LANG_FILE_PATH",
+        "SHOW_NOTE",
+        "LANG_DIR_FULL_PATH",
+        "LANG_DIR_ADDITIONAL_PATH",
+        "CLASS_OUTPUT_DIR_REGEX_PATH",
+        "LANG_DIR_REGEX_PATH",
         "LANG_FILE_EXT",
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implements Plugin, TaskListener {
 
-    private final static Map<String, Map<String, String>> internalMap = new HashMap<>();
     private final static Map<String, Map<String, String>> map = new HashMap<>();
-    private final static List<File> langFiles = new ArrayList<>();
+    private final static Map<String, Map<String, String>> internalMap = new HashMap<>();
     private static ProcessingEnvironment processingEnvironment;
     private static Trees trees;
     private static Types typeUtils;
@@ -52,31 +55,70 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
             processingEnvironment = processingEnv;
             trees = Trees.instance(processingEnv);
             typeUtils = processingEnvironment.getTypeUtils();
+
             super.init(processingEnv);
             Map<String, String> options = this.processingEnv.getOptions();
-            String pathRegex = options.get("CLASS_OUTPUT_PATH") == null ? "build/classes/(main/)?" : options.get("CLASS_OUTPUT_PATH");
-            String langRegex = options.get("LANG_FILE_PATH") == null ? "src/main/resources/lang/" : options.get("LANG_FILE_PATH");
-            String langExt = options.get("LANG_FILE_EXT") == null ? ".yml" : options.get("LANG_FILE_EXT");
-            Filer filer = processingEnv.getFiler();
-            FileObject fileObject = filer.getResource(StandardLocation.CLASS_OUTPUT, "", "langChecker");
-            String path = "/" + URLDecoder.decode(fileObject.toUri().toString().replaceFirst(pathRegex + "langChecker", langRegex), StandardCharsets.UTF_8.name()).replaceFirst("file:/", "");
-            File f = new File(path);
+            Boolean showNote = options.getOrDefault("SHOW_NOTE", "true").equalsIgnoreCase("true");
+            BiConsumer<Diagnostic.Kind, String> msg = (kind, message) -> {
+                if (kind == Diagnostic.Kind.NOTE && !showNote) return;
+                processingEnv.getMessager().printMessage(kind, message);
+            };
 
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Lang resources path:" + f.getCanonicalPath());
-            File[] files = f.listFiles(file -> file.isFile() && file.getPath().endsWith(langExt));
-            if (files == null) {
-                processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "Lang resources not found!");
+            String path = options.get("LANG_DIR_FULL_PATH");
+            String additionalPath = options.get("LANG_DIR_ADDITIONAL_PATH");
+            if (path == null) {
+                String pathRegex = options.get("CLASS_OUTPUT_DIR_REGEX_PATH") == null ? "build/classes/(main/)?" : options.get("CLASS_OUTPUT_DIR_REGEX_PATH");
+                String langRegex = options.get("LANG_DIR_REGEX_PATH") == null ? "src/main/resources/lang/" : options.get("LANG_DIR_REGEX_PATH");
+                Filer filer = processingEnv.getFiler();
+                FileObject fileObject = filer.getResource(StandardLocation.CLASS_OUTPUT, "", "langChecker");
+                path = "/" + URLDecoder.decode(fileObject.toUri().toString().replaceFirst(pathRegex + "langChecker", langRegex), StandardCharsets.UTF_8.name()).replaceFirst("file:/", "");
+            }
+            File f = new File(path);
+            String langExt = options.get("LANG_FILE_EXT") == null ? ".yml" : options.get("LANG_FILE_EXT");
+
+            msg.accept(Diagnostic.Kind.NOTE, "Lang resources directory: " + f.getCanonicalPath());
+            File[] mainFiles = f.listFiles(file -> file.isFile() && file.getPath().endsWith(langExt));
+            if (mainFiles == null) {
+                msg.accept(Diagnostic.Kind.WARNING, "Lang resources not found!");
                 return;
             }
-            for (File file : files) {
+            List<File> langFiles = Arrays.asList(mainFiles);
+            List<File> additionalFiles = null;
+            if (additionalPath != null) {
+                File additionalDir = new File(additionalPath);
                 try {
-                    processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, file.getCanonicalPath());
-                    langFiles.add(file);
+                    msg.accept(Diagnostic.Kind.NOTE, "Additional lang resources directory: " + additionalDir.getCanonicalPath());
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    msg.accept(Diagnostic.Kind.WARNING, "Fail to load additional lang resources directory: " + additionalPath);
+                }
+                File[] files = additionalDir.listFiles(file -> file.isFile() && file.getPath().endsWith(langExt));
+                if (files != null) {
+                    additionalFiles = Arrays.asList(files);
                 }
             }
-            loadInternalMap(langFiles);
+            msg.accept(Diagnostic.Kind.NOTE, "Loaded lang files:");
+            for (File file : langFiles) {
+                try {
+                    msg.accept(Diagnostic.Kind.NOTE, file.getCanonicalPath());
+                } catch (IOException e) {
+                    msg.accept(Diagnostic.Kind.WARNING, "Fail to load lang file: " + file.getPath());
+                    msg.accept(Diagnostic.Kind.WARNING, e.getMessage());
+                }
+            }
+            if (additionalFiles == null) {
+                additionalFiles = langFiles;
+            } else {
+                msg.accept(Diagnostic.Kind.NOTE, "Loaded additional lang files:");
+                for (File file : additionalFiles) {
+                    try {
+                        msg.accept(Diagnostic.Kind.NOTE, file.getCanonicalPath());
+                    } catch (IOException e) {
+                        msg.accept(Diagnostic.Kind.WARNING, "Fail to load additional lang file: " + file.getPath());
+                        msg.accept(Diagnostic.Kind.WARNING, e.getMessage());
+                    }
+                }
+            }
+            loadInternalMap(additionalFiles);
             loadLanguageMap(langFiles);
         } catch (Exception e) {
             e.printStackTrace();
@@ -291,7 +333,11 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                                     try {
                                         ctor = clazz.getConstructor(int.class);
                                     } catch (NoSuchMethodException noSuchMethodException2) {
-                                        ctor = clazz.getConstructor(double.class);
+                                        try {
+                                            ctor = clazz.getConstructor(long.class);
+                                        } catch (NoSuchMethodException noSuchMethodException3) {
+                                            ctor = clazz.getConstructor(double.class);//float has a double constructor too
+                                        }
                                     }
                                 }
                                 try {
@@ -300,7 +346,11 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                                     try {
                                         objects.add(ctor.newInstance(1));
                                     } catch (IllegalArgumentException illegalArgumentException2) {
-                                        objects.add(ctor.newInstance(0.1));
+                                        try {
+                                            objects.add(ctor.newInstance(1L));
+                                        } catch (IllegalArgumentException illegalArgumentException3) {
+                                            objects.add(ctor.newInstance(0.1));
+                                        }
                                     }
                                 }
                             } catch (Exception e) {
@@ -514,7 +564,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         });
     }
 
-    private HashBasedTable<String, String, String>  checkKey(LangKey annotation, String key, Tree tree, CompilationUnitTree cut) {
+    private HashBasedTable<String, String, String> checkKey(LangKey annotation, String key, Tree tree, CompilationUnitTree cut) {
         if (annotation.skipCheck()) return null;
         HashBasedTable<String, String, String>  value = HashBasedTable.create();
         if (key.startsWith("internal.")) {

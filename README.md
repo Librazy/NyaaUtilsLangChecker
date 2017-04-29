@@ -30,7 +30,7 @@ compileJava {
 }
 ```
 
-Annotate your function parameter that recieve a lang key and string constants contains a lang key with @LangKey
+Annotate your function parameter that receive a lang key and string constants contains a lang key with @LangKey
 ```java
     @LangKey private static final String BED_NOT_SET_YET = "user.teleport.bed_not_set_yet";
 
