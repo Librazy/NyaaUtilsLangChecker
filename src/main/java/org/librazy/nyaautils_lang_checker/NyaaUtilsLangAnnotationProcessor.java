@@ -272,6 +272,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     public Void visitMethodInvocation(MethodInvocationTree methodInv, Void v) {
                         try {
                             ExecutableElement method = (ExecutableElement) trees.getElement(path);
+                            if (method == null) return super.visitMethodInvocation(methodInv, v);
                             if (method.getParameters().stream().anyMatch(var -> var.getAnnotation(LangKey.class) != null)) {
                                 List<LangKey> langKeyList = method.getParameters().stream().map(var -> var.getAnnotation(LangKey.class)).collect(Collectors.toList());
                                 List<? extends ExpressionTree> rawArgumentList = methodInv.getArguments();
@@ -288,6 +289,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     public Void visitNewClass(NewClassTree methodInv, Void v) {
                         try {
                             ExecutableElement method = (ExecutableElement) trees.getElement(path);
+                            if (method == null) return super.visitNewClass(methodInv, v);
                             if (method.getParameters().stream().anyMatch(var -> var.getAnnotation(LangKey.class) != null)) {
                                 List<LangKey> langKeyList = method.getParameters().stream().map(var -> var.getAnnotation(LangKey.class)).collect(Collectors.toList());
                                 List<? extends ExpressionTree> rawArgumentList = methodInv.getArguments();
