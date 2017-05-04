@@ -92,6 +92,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                 try {
                     msg.accept(Diagnostic.Kind.NOTE, "Additional lang resources directory: " + additionalDir.getCanonicalPath());
                 } catch (IOException e) {
+                    e.printStackTrace();
                     msg.accept(Diagnostic.Kind.WARNING, "Fail to load additional lang resources directory: " + additionalPath);
                 }
                 File[] files = additionalDir.listFiles(file -> file.isFile() && file.getPath().endsWith(langExt));
@@ -401,12 +402,28 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         if (element == null) {
             if (expressionTree.getKind() == STRING_LITERAL) {
                 String value = (String) ((LiteralTree) expressionTree).getValue();
-                if(canBePrefix && canBeSuffix) {
-                    return checkKey(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
-                } else if(canBePrefix){
-                    checkKeyPrefix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
+                if (expectingAnnotation.type() == LangKeyType.KEY) {
+                    if(canBePrefix && canBeSuffix) {
+                        return checkKey(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
+                    } else if (canBePrefix) {
+                        checkKeyPrefix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
+                    } else {
+                        checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), canBeSuffix);
+                    }
+                } else if (expectingAnnotation.type() == LangKeyType.PREFIX)  {
+                    if(canBePrefix) {
+                        checkKeyPrefix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
+                    } else {
+                        checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), canBeSuffix);
+                    }
+                } else if (expectingAnnotation.type() == LangKeyType.SUFFIX){
+                    if(canBeSuffix) {
+                        checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), true);
+                    } else {
+                        checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), false);
+                    }
                 } else {
-                    checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), canBeSuffix);
+                    checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), false);
                 }
             }else {
                 if (expressionTree.getKind() == PLUS) {

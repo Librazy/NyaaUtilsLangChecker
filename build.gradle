@@ -20,12 +20,6 @@ repositories {
     }
 }
 
-configurations {
-    // configuration that holds jars to include in the jar
-    extraLibs
-}
-
-
 dependencies {
     compile files("lib/tools.jar")
     compile('org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT')
