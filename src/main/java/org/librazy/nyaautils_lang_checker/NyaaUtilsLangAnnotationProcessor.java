@@ -132,7 +132,12 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
             for (final Element element : roundEnv.getElementsAnnotatedWith(LangKey.class)) {
                 if (element instanceof VariableElement) {
                     LangKey annotation = element.getAnnotation(LangKey.class);
-                    Object constValue = ((VariableElement) element).getConstantValue();
+                    Object constValue;
+                    try {
+                        constValue = ((VariableElement) element).getConstantValue();
+                    } catch (ClassCastException e) {
+                        continue;
+                    }
                     if (constValue == null || !(constValue instanceof String)) continue;
                     String key = (String) constValue;
                     if (annotation.type() == LangKeyType.KEY) {
@@ -271,7 +276,12 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     @Override
                     public Void visitMethodInvocation(MethodInvocationTree methodInv, Void v) {
                         try {
-                            ExecutableElement method = (ExecutableElement) trees.getElement(path);
+                            ExecutableElement method;
+                            try {
+                                method = (ExecutableElement) trees.getElement(path);
+                            } catch (ClassCastException e) {
+                                return super.visitMethodInvocation(methodInv, v);
+                            }
                             if (method == null) return super.visitMethodInvocation(methodInv, v);
                             if (method.getParameters().stream().anyMatch(var -> var.getAnnotation(LangKey.class) != null)) {
                                 List<LangKey> langKeyList = method.getParameters().stream().map(var -> var.getAnnotation(LangKey.class)).collect(Collectors.toList());
@@ -288,7 +298,12 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     @Override
                     public Void visitNewClass(NewClassTree methodInv, Void v) {
                         try {
-                            ExecutableElement method = (ExecutableElement) trees.getElement(path);
+                            ExecutableElement method;
+                            try {
+                                method = (ExecutableElement) trees.getElement(path);
+                            } catch (ClassCastException e) {
+                                return super.visitNewClass(methodInv, v);
+                            }
                             if (method == null) return super.visitNewClass(methodInv, v);
                             if (method.getParameters().stream().anyMatch(var -> var.getAnnotation(LangKey.class) != null)) {
                                 List<LangKey> langKeyList = method.getParameters().stream().map(var -> var.getAnnotation(LangKey.class)).collect(Collectors.toList());

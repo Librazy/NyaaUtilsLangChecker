@@ -29,19 +29,6 @@ configurations {
 dependencies {
     compile files("lib/tools.jar")
     compile('org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT')
-    extraLibs 'org.yaml:snakeyaml:1.19-SNAPSHOT'
-    extraLibs ('commons-lang:commons-lang:2.6'){
-        transitive = false
-    }
-    extraLibs ('com.google.guava:guava:21.0') {
-        transitive = false
-    }
-}
-
-jar {
-    from {
-        configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) }
-    }
 }
 
 publishing {
