@@ -67,7 +67,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
             String path = options.get("LANG_DIR_FULL_PATH");
             String additionalPath = options.get("LANG_DIR_ADDITIONAL_PATH");
             if (path == null) {
-                String pathRegex = options.get("CLASS_OUTPUT_DIR_REGEX_PATH") == null ? "build/classes/(main/)?" : options.get("CLASS_OUTPUT_DIR_REGEX_PATH");
+                String pathRegex = options.get("CLASS_OUTPUT_DIR_REGEX_PATH") == null ? "build/classes/(main/|test/)?" : options.get("CLASS_OUTPUT_DIR_REGEX_PATH");
                 String langRegex = options.get("LANG_DIR_REGEX_PATH") == null ? "src/main/resources/lang/" : options.get("LANG_DIR_REGEX_PATH");
                 Filer filer = processingEnv.getFiler();
                 FileObject fileObject = filer.getResource(StandardLocation.CLASS_OUTPUT, "", "langChecker");
@@ -75,7 +75,10 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
             }
             File f = new File(path);
             String langExt = options.get("LANG_FILE_EXT") == null ? ".yml" : options.get("LANG_FILE_EXT");
-
+            if(f.getPath().endsWith("langChecker")){
+                msg.accept(Diagnostic.Kind.WARNING, "Failed to locate lang resources! Please use LANG_DIR_FULL_PATH!");
+                return;
+            }
             msg.accept(Diagnostic.Kind.NOTE, "Lang resources directory: " + f.getCanonicalPath());
             File[] mainFiles = f.listFiles(file -> file.isFile() && file.getPath().endsWith(langExt));
             if (mainFiles == null) {
