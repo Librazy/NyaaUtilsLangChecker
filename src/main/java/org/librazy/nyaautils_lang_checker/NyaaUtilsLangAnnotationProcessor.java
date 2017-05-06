@@ -284,13 +284,15 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     @Override
                     public Void visitReturn(ReturnTree returnTree, Void v) {
                         ExpressionTree exp = returnTree.getExpression();
+                        if(lastMethod == null){
+                            return super.visitReturn(returnTree, v);
+                        }
                         LangKey actualAnnotation = lastMethod.getAnnotation(LangKey.class);
                         if (actualAnnotation == null) {
                             return super.visitReturn(returnTree, v);
                         }
-                        LangKey annotation = lastMethod.getAnnotation(LangKey.class);
                         if (!actualAnnotation.skipCheck()) {
-                            visitExpressionTree(taskEvt, annotation, exp, true, true);
+                            visitExpressionTree(taskEvt, actualAnnotation, exp, true, true);
                         }
                         return super.visitReturn(returnTree, v);
                     }
@@ -339,6 +341,17 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                         Element element = trees.getElement(path);
                         lastMethod = (ExecutableElement) element;
                         return super.visitMethod(methodTree, v);
+                    }
+
+                    @Override
+                    public Void visitLambdaExpression(LambdaExpressionTree methodTree, Void v) {
+                        ExecutableElement last = lastMethod;
+                        try {
+                            lastMethod = null;
+                            return super.visitLambdaExpression(methodTree, v);
+                        } finally {
+                            lastMethod = last;
+                        }
                     }
 
                     @Override
