@@ -45,10 +45,34 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
 
     private final static Map<String, Map<String, String>> map = new HashMap<>();
     private final static Map<String, Map<String, String>> internalMap = new HashMap<>();
+    private final static Map<String, Map<String, String>> additionalMap = new HashMap<>();
     private static ProcessingEnvironment processingEnvironment;
     private static Trees trees;
     private static Types typeUtils;
-    private static boolean internalLoaded;
+
+    /**
+     * add all language items from section into language map recursively
+     * overwrite existing items
+     * The '&' will be transformed to color code.
+     *
+     * @param section        source section
+     * @param prefix         used in recursion to determine the proper prefix
+     * @param ignoreInternal ignore keys prefixed with `internal'
+     * @param ignoreNormal   ignore keys not prefixed with `internal'
+     */
+    private static void loadLanguageSection(Map<String, String> map, ConfigurationSection section, String prefix, boolean ignoreInternal, boolean ignoreNormal) {
+        if (map == null || section == null || prefix == null) return;
+        for (String key : section.getKeys(false)) {
+            String path = prefix + key;
+            if (section.isString(key)) {
+                if (path.startsWith("internal") && ignoreInternal) continue;
+                if (!path.startsWith("internal") && ignoreNormal) continue;
+                map.put(path, ChatColor.translateAlternateColorCodes('&', section.getString(key)));
+            } else if (section.isConfigurationSection(key)) {
+                loadLanguageSection(map, section.getConfigurationSection(key), path + ".", ignoreInternal, ignoreNormal);
+            }
+        }
+    }
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -110,9 +134,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     msg.accept(Diagnostic.Kind.WARNING, e.getMessage());
                 }
             }
-            if (additionalFiles == null) {
-                additionalFiles = langFiles;
-            } else {
+            if (additionalFiles != null) {
                 msg.accept(Diagnostic.Kind.NOTE, "Loaded additional lang files:");
                 for (File file : additionalFiles) {
                     try {
@@ -123,9 +145,9 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     }
                 }
             }
-            loadInternalMap(additionalFiles);
+            loadInternalMap(additionalFiles, additionalMap);
+            loadInternalMap(langFiles, internalMap);
             loadLanguageMap(langFiles);
-            msg.accept(Diagnostic.Kind.NOTE, "Internal map is " + (internalLoaded? "loaded.":"not loaded."));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -184,15 +206,15 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         }
     }
 
-
-    private void loadInternalMap(List<File> files) {
-        internalMap.clear();
+    private void loadInternalMap(List<File> files, Map<String, Map<String, String>> map) {
+        if (files == null) return;
+        map.clear();
         for (File f : files) {
             try {
                 InputStream stream = new FileInputStream(f);
                 ConfigurationSection section = YamlConfiguration.loadConfiguration(new InputStreamReader(stream));
-                internalMap.put(f.getName(), new HashMap<>());
-                loadLanguageSection(internalMap.get(f.getName()), section.getConfigurationSection("internal"), "internal.", false);
+                map.put(f.getName(), new HashMap<>());
+                loadLanguageSection(map.get(f.getName()), section.getConfigurationSection("internal"), "internal.", false, true);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
@@ -206,32 +228,9 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                 InputStream stream = new FileInputStream(f);
                 ConfigurationSection section = YamlConfiguration.loadConfiguration(new InputStreamReader(stream));
                 map.put(f.getName(), new HashMap<>());
-                loadLanguageSection(map.get(f.getName()), section, "", true);
+                loadLanguageSection(map.get(f.getName()), section, "", true, false);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
-            }
-        }
-    }
-
-    /**
-     * add all language items from section into language map recursively
-     * existing items won't be overwritten
-     *
-     * @param section        source section
-     * @param prefix         used in recursion to determine the proper prefix
-     * @param ignoreInternal ignore keys prefixed with `internal'
-     */
-    private void loadLanguageSection(Map<String, String> map, ConfigurationSection section, String prefix, boolean ignoreInternal) {
-        if (map == null || section == null || prefix == null) return;
-        for (String key : section.getKeys(false)) {
-            String path = prefix + key;
-            if (section.isString(key)) {
-                if (!map.containsKey(path) && (!ignoreInternal || !path.startsWith("internal."))) {
-                    if (path.startsWith("internal.")) internalLoaded = true;
-                    map.put(path, ChatColor.translateAlternateColorCodes('&', section.getString(key)));
-                }
-            } else if (section.isConfigurationSection(key)) {
-                loadLanguageSection(map, section.getConfigurationSection(key), path + ".", ignoreInternal);
             }
         }
     }
@@ -284,7 +283,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     @Override
                     public Void visitReturn(ReturnTree returnTree, Void v) {
                         ExpressionTree exp = returnTree.getExpression();
-                        if(lastMethod == null){
+                        if (lastMethod == null) {
                             return super.visitReturn(returnTree, v);
                         }
                         LangKey actualAnnotation = lastMethod.getAnnotation(LangKey.class);
@@ -608,37 +607,44 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
 
     private void checkKeyPrefix(LangKey annotation, String prefix, Tree tree, CompilationUnitTree cut) {
         if (annotation.skipCheck()) return;
-        final String[] checkedLang = annotation.value();
-        if (prefix.startsWith("internal.")) {
-            if (!internalLoaded) return;
-            for (Map.Entry<String, Map<String, String>> lang : internalMap.entrySet()) {
-                if (annotation.value().length > 0 && Stream.of(checkedLang).noneMatch(lang.getKey()::startsWith))
-                    continue;
-                if (lang.getValue().keySet().stream().noneMatch(key -> key.startsWith(prefix))) {
-                    trees.printMessage(Diagnostic.Kind.WARNING, "Key prefix " + prefix + " not found in internal lang " + lang.getKey(), tree, cut);
-                }
-            }
-        } else {
-            for (Map.Entry<String, Map<String, String>> lang : map.entrySet()) {
-                if (annotation.value().length > 0 && Stream.of(checkedLang).noneMatch(lang.getKey()::startsWith))
-                    continue;
-                if (lang.getValue().keySet().stream().noneMatch(key -> key.startsWith(prefix))) {
-                    trees.printMessage(Diagnostic.Kind.WARNING, "Key prefix " + prefix + " not found in lang " + lang.getKey(), tree, cut);
-                }
-            }
-        }
+        Consumer<String> treeWarn = (String str) -> trees.printMessage(Diagnostic.Kind.WARNING, str, tree, cut);
+        checkKeyPrefix(annotation, prefix, treeWarn);
     }
 
     private void checkKeyPrefix(LangKey annotation, String prefix, Element element) {
         if (annotation.skipCheck()) return;
+        Consumer<String> envWarn = (String str) -> processingEnvironment.getMessager().printMessage(Diagnostic.Kind.WARNING, str, element);
+        checkKeyPrefix(annotation, prefix, envWarn);
+    }
+
+    private void checkKeyPrefix(LangKey annotation, String prefix, Consumer<String> warn) {
         final String[] checkedLang = annotation.value();
         if (prefix.startsWith("internal.")) {
-            if (!internalLoaded) return;
             for (Map.Entry<String, Map<String, String>> lang : internalMap.entrySet()) {
                 if (annotation.value().length > 0 && Stream.of(checkedLang).noneMatch(lang.getKey()::startsWith))
                     continue;
                 if (lang.getValue().keySet().stream().noneMatch(key -> key.startsWith(prefix))) {
-                    processingEnvironment.getMessager().printMessage(Diagnostic.Kind.WARNING, "Key component prefix " + prefix + " not found in internal lang " + lang.getKey(), element);
+                    warn.accept("Key component prefix " + prefix + " not found in internal lang " + lang.getKey());
+                }
+            }
+
+            Set<String> notFound = new HashSet<>();
+            for (Map.Entry<String, Map<String, String>> lang : internalMap.entrySet()) {
+                if (annotation.value().length > 0 && Stream.of(annotation.value()).noneMatch(lang.getKey()::startsWith))
+                    continue;
+                if (lang.getValue().keySet().stream().noneMatch(key -> key.startsWith(prefix))) {
+                    notFound.add(lang.getKey());
+                }
+            }
+            if (notFound.size() != internalMap.size()) {
+                notFound.forEach(langName -> warn.accept("Key component prefix " + prefix + " not found in internal lang " + langName));
+            } else {
+                for (Map.Entry<String, Map<String, String>> lang : additionalMap.entrySet()) {
+                    if (annotation.value().length > 0 && Stream.of(annotation.value()).noneMatch(lang.getKey()::startsWith))
+                        continue;
+                    if (lang.getValue().keySet().stream().noneMatch(key -> key.startsWith(prefix))) {
+                        warn.accept("Key component prefix " + prefix + " not found in additional internal lang " + lang.getKey());
+                    }
                 }
             }
         } else {
@@ -646,7 +652,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                 if (annotation.value().length > 0 && Stream.of(checkedLang).noneMatch(lang.getKey()::startsWith))
                     continue;
                 if (lang.getValue().keySet().stream().noneMatch(key -> key.startsWith(prefix))) {
-                    processingEnvironment.getMessager().printMessage(Diagnostic.Kind.WARNING, "Key component prefix " + prefix + " not found in lang " + lang.getKey(), element);
+                    warn.accept("Key component prefix " + prefix + " not found in lang " + lang.getKey());
                 }
             }
         }
@@ -655,9 +661,9 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     private void checkKeyInSuffix(LangKey annotation, String fix, Element element) {
         if (annotation.skipCheck()) return;
         final String[] checkedLang = annotation.value();
-        Set<Map.Entry<String, Map<String, String>>> entrySet = annotation.isInternal() ? internalMap.entrySet() : map.entrySet();
+        List<Set<Map.Entry<String, Map<String, String>>>> entrySets = annotation.isInternal() ? Stream.of(internalMap.entrySet(), additionalMap.entrySet()).collect(Collectors.toList()) : Stream.of(map.entrySet()).collect(Collectors.toList());
         boolean isSuffix = annotation.type() == LangKeyType.SUFFIX;
-        Map<String, Boolean> chk = checkInSuffix(fix, checkedLang, Stream.of(entrySet).collect(Collectors.toList()), isSuffix);
+        Map<String, Boolean> chk = checkInSuffix(fix, checkedLang, entrySets, isSuffix);
         chk.forEach((k, v) -> {
             if (!v)
                 processingEnvironment.getMessager().printMessage(Diagnostic.Kind.WARNING, "Key component " + (isSuffix ? "suffix " : "infix ") + fix + " not found in lang " + k, element);
@@ -666,27 +672,51 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
 
     private void checkKeyInSuffix(LangKey annotation, String fix, Tree tree, CompilationUnitTree cut, boolean isSuffix) {
         if (annotation.skipCheck()) return;
-        List<Set<Map.Entry<String, Map<String, String>>>> entrySets = Stream.of(internalMap.entrySet(), map.entrySet()).collect(Collectors.toList());
+        List<Set<Map.Entry<String, Map<String, String>>>> entrySets = Stream.of(internalMap.entrySet(), map.entrySet(), additionalMap.entrySet()).collect(Collectors.toList());
         final String[] checkedLang = annotation.value();
         Map<String, Boolean> chk = checkInSuffix(fix, checkedLang, entrySets, isSuffix);
         chk.forEach((k, v) -> {
             if (!v)
-                trees.printMessage(Diagnostic.Kind.WARNING, "Key suffix " + fix + " not found in" + k, tree, cut);
+                trees.printMessage(Diagnostic.Kind.WARNING, "Key " + (isSuffix ? "suffix " : "infix ") + fix + " not found in " + k, tree, cut);
         });
     }
 
     private HashBasedTable<String, String, String> checkKey(LangKey annotation, String key, Tree tree, CompilationUnitTree cut) {
         if (annotation.skipCheck()) return null;
+        Consumer<String> treeWarn = (String str) -> trees.printMessage(Diagnostic.Kind.WARNING, str, tree, cut);
+        return checkKey(annotation, key, treeWarn);
+    }
+
+    private HashBasedTable<String, String, String> checkKey(LangKey annotation, String key, Element element) {
+        if (annotation.skipCheck()) return null;
+        Consumer<String> envWarn = (String str) -> processingEnvironment.getMessager().printMessage(Diagnostic.Kind.WARNING, str, element);
+        return checkKey(annotation, key, envWarn);
+    }
+
+    private HashBasedTable<String, String, String> checkKey(LangKey annotation, String key, Consumer<String> warn) {
         HashBasedTable<String, String, String> value = HashBasedTable.create();
         if (key.startsWith("internal.")) {
-            if (!internalLoaded) return null;
+            Set<String> notFound = new HashSet<>();
             for (Map.Entry<String, Map<String, String>> lang : internalMap.entrySet()) {
                 if (annotation.value().length > 0 && Stream.of(annotation.value()).noneMatch(lang.getKey()::startsWith))
                     continue;
                 if (lang.getValue().get(key) == null) {
-                    trees.printMessage(Diagnostic.Kind.WARNING, "Key " + key + " not found in internal lang " + lang.getKey(), tree, cut);
+                    notFound.add(lang.getKey());
                 } else {
                     value.put(lang.getKey(), key, lang.getValue().get(key));
+                }
+            }
+            if (notFound.size() != internalMap.size()) {
+                notFound.forEach(langName -> warn.accept("Key " + key + " not found in internal lang " + langName));
+            } else {
+                for (Map.Entry<String, Map<String, String>> lang : additionalMap.entrySet()) {
+                    if (annotation.value().length > 0 && Stream.of(annotation.value()).noneMatch(lang.getKey()::startsWith))
+                        continue;
+                    if (lang.getValue().get(key) == null) {
+                        warn.accept("Key " + key + " not found in additional internal lang " + lang.getKey());
+                    } else {
+                        value.put(lang.getKey(), key, lang.getValue().get(key));
+                    }
                 }
             }
         } else {
@@ -694,35 +724,13 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                 if (annotation.value().length > 0 && Stream.of(annotation.value()).noneMatch(lang.getKey()::startsWith))
                     continue;
                 if (lang.getValue().get(key) == null) {
-                    trees.printMessage(Diagnostic.Kind.WARNING, "Key " + key + " not found in lang " + lang.getKey(), tree, cut);
+                    warn.accept("Key " + key + " not found in lang " + lang.getKey());
                 } else {
                     value.put(lang.getKey(), key, lang.getValue().get(key));
                 }
             }
         }
         return value;
-    }
-
-    private void checkKey(LangKey annotation, String key, Element element) {
-        if (annotation.skipCheck()) return;
-        if (key.startsWith("internal.")) {
-            if (!internalLoaded) return;
-            for (Map.Entry<String, Map<String, String>> lang : internalMap.entrySet()) {
-                if (annotation.value().length > 0 && Stream.of(annotation.value()).noneMatch(lang.getKey()::startsWith))
-                    continue;
-                if (lang.getValue().get(key) == null) {
-                    processingEnvironment.getMessager().printMessage(Diagnostic.Kind.WARNING, "Key " + key + " not found in internal lang " + lang.getKey(), element);
-                }
-            }
-        } else {
-            for (Map.Entry<String, Map<String, String>> lang : map.entrySet()) {
-                if (annotation.value().length > 0 && Stream.of(annotation.value()).noneMatch(lang.getKey()::startsWith))
-                    continue;
-                if (lang.getValue().get(key) == null) {
-                    processingEnvironment.getMessager().printMessage(Diagnostic.Kind.WARNING, "Key " + key + " not found in lang " + lang.getKey(), element);
-                }
-            }
-        }
     }
 
     private Map<String, Boolean> checkInSuffix(String fix, String[] checkedLang, List<Set<Map.Entry<String, Map<String, String>>>> entrySets, boolean isSuffix) {
