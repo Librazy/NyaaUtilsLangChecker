@@ -706,14 +706,14 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     value.put(lang.getKey(), key, lang.getValue().get(key));
                 }
             }
-            if (notFound.size() != internalMap.size()) {
+            if (additionalMap.size()== 0 || notFound.size() != internalMap.size()) {
                 notFound.forEach(langName -> warn.accept("Key " + key + " not found in internal lang " + langName));
             } else {
                 for (Map.Entry<String, Map<String, String>> lang : additionalMap.entrySet()) {
                     if (annotation.value().length > 0 && Stream.of(annotation.value()).noneMatch(lang.getKey()::startsWith))
                         continue;
                     if (lang.getValue().get(key) == null) {
-                        warn.accept("Key " + key + " not found in additional internal lang " + lang.getKey());
+                        warn.accept("Key " + key + " not found in internal and additional internal lang " + lang.getKey());
                     } else {
                         value.put(lang.getKey(), key, lang.getValue().get(key));
                     }
