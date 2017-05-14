@@ -469,116 +469,120 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         TypeMirror typeMirror = trees.getTypeMirror(path);
         Element element = trees.getElement(path);
         Consumer<String> treesWarn = (String warn) -> trees.printMessage(Diagnostic.Kind.WARNING, warn, expressionTree, taskEvt.getCompilationUnit());
-
-        if (element == null) {
-            if (expressionTree.getKind() == STRING_LITERAL) {
-                String value = (String) ((LiteralTree) expressionTree).getValue();
-                if (expectingAnnotation.type() == LangKeyType.KEY) {
-                    if (canBePrefix && canBeSuffix) {
-                        return checkKey(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
-                    } else if (canBePrefix) {
-                        checkKeyPrefix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
-                    } else {
-                        checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), canBeSuffix);
-                    }
-                } else if (expectingAnnotation.type() == LangKeyType.PREFIX) {
-                    if (canBePrefix) {
-                        checkKeyPrefix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
-                    } else {
-                        checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), canBeSuffix);
-                    }
-                } else if (expectingAnnotation.type() == LangKeyType.SUFFIX) {
-                    if (canBeSuffix) {
-                        checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), true);
+        try {
+            if (element == null) {
+                if (expressionTree.getKind() == STRING_LITERAL) {
+                    String value = (String) ((LiteralTree) expressionTree).getValue();
+                    if (expectingAnnotation.type() == LangKeyType.KEY) {
+                        if (canBePrefix && canBeSuffix) {
+                            return checkKey(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
+                        } else if (canBePrefix) {
+                            checkKeyPrefix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
+                        } else {
+                            checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), canBeSuffix);
+                        }
+                    } else if (expectingAnnotation.type() == LangKeyType.PREFIX) {
+                        if (canBePrefix) {
+                            checkKeyPrefix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit());
+                        } else {
+                            checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), canBeSuffix);
+                        }
+                    } else if (expectingAnnotation.type() == LangKeyType.SUFFIX) {
+                        if (canBeSuffix) {
+                            checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), true);
+                        } else {
+                            checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), false);
+                        }
                     } else {
                         checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), false);
                     }
                 } else {
-                    checkKeyInSuffix(expectingAnnotation, value, expressionTree, taskEvt.getCompilationUnit(), false);
+                    if (expressionTree.getKind() == PLUS) {
+                        BinaryTree bt = (BinaryTree) expressionTree;
+                        ExpressionTree lo = bt.getLeftOperand();
+                        ExpressionTree ro = bt.getRightOperand();
+                        visitExpressionTree(taskEvt, expectingAnnotation, lo, canBePrefix, false);
+                        visitExpressionTree(taskEvt, expectingAnnotation, ro, false, canBeSuffix);
+                    } else if (expressionTree.getKind() == PARENTHESIZED) {
+                        ParenthesizedTree pt = (ParenthesizedTree) expressionTree;
+                        visitExpressionTree(taskEvt, expectingAnnotation, pt.getExpression(), canBePrefix, canBeSuffix);
+                    } else if (expressionTree.getKind() == CONDITIONAL_EXPRESSION) {
+                        ConditionalExpressionTree ct = (ConditionalExpressionTree) expressionTree;
+                        visitExpressionTree(taskEvt, expectingAnnotation, ct.getTrueExpression(), canBePrefix, canBeSuffix);
+                        visitExpressionTree(taskEvt, expectingAnnotation, ct.getFalseExpression(), canBePrefix, canBeSuffix);
+                    } else {
+                        treesWarn.accept("Using raw value " + expressionTree.getKind().toString().toLowerCase() + " as lang key:");
+                    }
                 }
-            } else {
-                if (expressionTree.getKind() == PLUS) {
-                    BinaryTree bt = (BinaryTree) expressionTree;
-                    ExpressionTree lo = bt.getLeftOperand();
-                    ExpressionTree ro = bt.getRightOperand();
-                    visitExpressionTree(taskEvt, expectingAnnotation, lo, canBePrefix, false);
-                    visitExpressionTree(taskEvt, expectingAnnotation, ro, false, canBeSuffix);
-                } else if (expressionTree.getKind() == PARENTHESIZED) {
-                    ParenthesizedTree pt = (ParenthesizedTree) expressionTree;
-                    visitExpressionTree(taskEvt, expectingAnnotation, pt.getExpression(), canBePrefix, canBeSuffix);
-                } else if (expressionTree.getKind() == CONDITIONAL_EXPRESSION) {
-                    ConditionalExpressionTree ct = (ConditionalExpressionTree) expressionTree;
-                    visitExpressionTree(taskEvt, expectingAnnotation, ct.getTrueExpression(), canBePrefix, canBeSuffix);
-                    visitExpressionTree(taskEvt, expectingAnnotation, ct.getFalseExpression(), canBePrefix, canBeSuffix);
-                } else {
-                    treesWarn.accept("Using raw value " + expressionTree.getKind().toString().toLowerCase() + " as lang key:");
-                }
-            }
-        } else if (element.getAnnotation(LangKey.class) == null && typeMirror.getAnnotation(LangKey.class) == null) {
-            if (expressionTree.getKind() == METHOD_INVOCATION) {
-                MethodInvocationTree methodInvocationTree = (MethodInvocationTree) expressionTree;
-                TreePath mtPath = TreePath.getPath(taskEvt.getCompilationUnit(), methodInvocationTree);
-                Element mtElement = trees.getElement(mtPath);
-                TypeMirror mtType = mtElement.asType();
-                if (mtElement instanceof ExecutableElement) {
-                    ExecutableElement executableElement = (ExecutableElement) mtElement;
-                    mtType = executableElement.getReturnType();
-                }
-                if (mtElement.getAnnotation(LangKey.class) == null && mtType.getAnnotation(LangKey.class) == null) {
-                    ExpressionTree methodSelect = methodInvocationTree.getMethodSelect();
-                    if (methodSelect instanceof MemberSelectTree && (mtElement.getSimpleName().toString().equals("name") || mtElement.getSimpleName().toString().equals("toString"))) {
-                        MemberSelectTree memberSelectTree = (MemberSelectTree) methodSelect;
-                        ExpressionTree receiver = memberSelectTree.getExpression();
-                        TreePath rPath = TreePath.getPath(taskEvt.getCompilationUnit(), receiver);
-                        Element rcElement = trees.getElement(rPath);
-                        TypeMirror rcType = rcElement.asType();
-                        if (rcType.getKind() == TypeKind.EXECUTABLE) {
-                            ExecutableElement executableRcElement = (ExecutableElement) rcElement;
-                            rcType = executableRcElement.getReturnType();
-                        }
-                        TypeElement rcTypeElement = (TypeElement) typeUtils.asElement(rcType);
-                        if (rcTypeElement == null) {
-                            treesWarn.accept("Using not annotated enum as lang key suffix:");
-                        } else {
-                            LangKey actualAnnotation = rcElement.getAnnotation(LangKey.class);
-                            if (actualAnnotation == null) {
-                                actualAnnotation = rcTypeElement.getAnnotation(LangKey.class);
+            } else if (element.getAnnotation(LangKey.class) == null && typeMirror.getAnnotation(LangKey.class) == null) {
+                if (expressionTree.getKind() == METHOD_INVOCATION) {
+                    MethodInvocationTree methodInvocationTree = (MethodInvocationTree) expressionTree;
+                    TreePath mtPath = TreePath.getPath(taskEvt.getCompilationUnit(), methodInvocationTree);
+                    Element mtElement = trees.getElement(mtPath);
+                    TypeMirror mtType = mtElement.asType();
+                    if (mtElement instanceof ExecutableElement) {
+                        ExecutableElement executableElement = (ExecutableElement) mtElement;
+                        mtType = executableElement.getReturnType();
+                    }
+                    if (mtElement.getAnnotation(LangKey.class) == null && mtType.getAnnotation(LangKey.class) == null) {
+                        ExpressionTree methodSelect = methodInvocationTree.getMethodSelect();
+                        if (methodSelect instanceof MemberSelectTree && (mtElement.getSimpleName().toString().equals("name") || mtElement.getSimpleName().toString().equals("toString"))) {
+                            MemberSelectTree memberSelectTree = (MemberSelectTree) methodSelect;
+                            ExpressionTree receiver = memberSelectTree.getExpression();
+                            TreePath rPath = TreePath.getPath(taskEvt.getCompilationUnit(), receiver);
+                            Element rcElement = trees.getElement(rPath);
+                            TypeMirror rcType = rcElement.asType();
+                            if (rcType.getKind() == TypeKind.EXECUTABLE) {
+                                ExecutableElement executableRcElement = (ExecutableElement) rcElement;
+                                rcType = executableRcElement.getReturnType();
                             }
-                            if (actualAnnotation == null) {
-                                treesWarn.accept("Using not annotated enum(-like) as lang key suffix:");
+                            TypeElement rcTypeElement = (TypeElement) typeUtils.asElement(rcType);
+                            if (rcTypeElement == null) {
+                                treesWarn.accept("Using not annotated enum as lang key suffix:");
                             } else {
-                                if (!actualAnnotation.skipCheck()) {
-                                    checkActualAnnotation(canBePrefix, canBeSuffix, treesWarn, actualAnnotation);
+                                LangKey actualAnnotation = rcElement.getAnnotation(LangKey.class);
+                                if (actualAnnotation == null) {
+                                    actualAnnotation = rcTypeElement.getAnnotation(LangKey.class);
+                                }
+                                if (actualAnnotation == null) {
+                                    treesWarn.accept("Using not annotated enum(-like) as lang key suffix:");
+                                } else {
+                                    if (!actualAnnotation.skipCheck()) {
+                                        checkActualAnnotation(canBePrefix, canBeSuffix, treesWarn, actualAnnotation);
+                                    }
                                 }
                             }
+                        } else {
+                            treesWarn.accept("Using not annotated method return as lang key suffix:");
                         }
                     } else {
-                        treesWarn.accept("Using not annotated method return as lang key suffix:");
+                        LangKey actualAnnotation = mtElement.getAnnotation(LangKey.class);
+                        if (actualAnnotation == null) {
+                            actualAnnotation = mtType.getAnnotation(LangKey.class);
+                        }
+                        checkActualAnnotation(canBePrefix, canBeSuffix, treesWarn, actualAnnotation);
                     }
                 } else {
-                    LangKey actualAnnotation = mtElement.getAnnotation(LangKey.class);
-                    if (actualAnnotation == null) {
-                        actualAnnotation = mtType.getAnnotation(LangKey.class);
+                    if (expressionTree.getKind() == IDENTIFIER || expressionTree.getKind() == MEMBER_SELECT) {
+                        treesWarn.accept("Using not annotated variable as lang key:");
+                    } else {
+                        treesWarn.accept("Using not annotated element as lang key:");
                     }
-                    checkActualAnnotation(canBePrefix, canBeSuffix, treesWarn, actualAnnotation);
                 }
             } else {
-                if (expressionTree.getKind() == IDENTIFIER || expressionTree.getKind() == MEMBER_SELECT) {
-                    treesWarn.accept("Using not annotated variable as lang key:");
-                } else {
-                    treesWarn.accept("Using not annotated element as lang key:");
+                LangKey actualAnnotation = element.getAnnotation(LangKey.class);
+                if (actualAnnotation == null) {
+                    actualAnnotation = typeMirror.getAnnotation(LangKey.class);
+                }
+                if (actualAnnotation.type() != expectingAnnotation.type()) {
+                    if (!actualAnnotation.skipCheck() && checkExpectingAnnotation(canBePrefix, canBeSuffix, expectingAnnotation)) {
+                        treesWarn.accept("Expecting " + expectingAnnotation.type().toString().toLowerCase() + ", found " + actualAnnotation.type().toString().toLowerCase() + ":");
+                    }
                 }
             }
-        } else {
-            LangKey actualAnnotation = element.getAnnotation(LangKey.class);
-            if (actualAnnotation == null) {
-                actualAnnotation = typeMirror.getAnnotation(LangKey.class);
-            }
-            if (actualAnnotation.type() != expectingAnnotation.type()) {
-                if (!actualAnnotation.skipCheck() && checkExpectingAnnotation(canBePrefix, canBeSuffix, expectingAnnotation)) {
-                    treesWarn.accept("Expecting " + expectingAnnotation.type().toString().toLowerCase() + ", found " + actualAnnotation.type().toString().toLowerCase() + ":");
-                }
-            }
+        }catch (Exception e){
+            treesWarn.accept("Exception in processing:");
+            e.printStackTrace();
         }
         return null;
     }
