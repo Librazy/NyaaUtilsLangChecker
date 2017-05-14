@@ -10,7 +10,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
-import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
@@ -531,11 +530,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                             ExpressionTree receiver = memberSelectTree.getExpression();
                             TreePath rPath = TreePath.getPath(taskEvt.getCompilationUnit(), receiver);
                             Element rcElement = trees.getElement(rPath);
-                            TypeMirror rcType = rcElement.asType();
-                            if (rcType.getKind() == TypeKind.EXECUTABLE) {
-                                ExecutableElement executableRcElement = (ExecutableElement) rcElement;
-                                rcType = executableRcElement.getReturnType();
-                            }
+                            TypeMirror rcType = trees.getTypeMirror(trees.getPath(taskEvt.getCompilationUnit(), receiver));
                             Element rcTypeElement = typeUtils.asElement(rcType);
                             if (rcTypeElement == null) {
                                 treesWarn.accept("Using not annotated type as lang key suffix:");
@@ -543,14 +538,6 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                                 LangKey actualAnnotation = rcElement.getAnnotation(LangKey.class);
                                 if (actualAnnotation == null) {
                                     actualAnnotation = rcTypeElement.getAnnotation(LangKey.class);
-                                }
-                                if (actualAnnotation == null && rcTypeElement instanceof TypeParameterElement) {
-                                    TypeParameterElement rcTypeParameterElement = (TypeParameterElement) rcTypeElement;
-                                    TypeMirror rcTypePara = rcTypeParameterElement.getBounds().get(0);
-                                    Element rcTypeParaElement = typeUtils.asElement(rcTypePara);
-                                    if (rcTypeParaElement != null) {
-                                        actualAnnotation = rcTypeParaElement.getAnnotation(LangKey.class);
-                                    }
                                 }
                                 if (actualAnnotation == null) {
                                     treesWarn.accept("Using not annotated enum(-like) as lang key suffix:");
