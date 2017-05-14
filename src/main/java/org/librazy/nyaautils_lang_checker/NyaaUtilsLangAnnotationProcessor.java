@@ -427,7 +427,11 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                                         try {
                                             ctor = clazz.getConstructor(long.class);
                                         } catch (NoSuchMethodException noSuchMethodException3) {
-                                            ctor = clazz.getConstructor(double.class);//float has a double constructor too
+                                            try {
+                                                ctor = clazz.getConstructor(double.class);//float has a double constructor too
+                                            } catch (NoSuchMethodException noSuchMethodException4) {
+                                                ctor = clazz.getConstructor(boolean.class);
+                                            }
                                         }
                                     }
                                 }
@@ -440,7 +444,11 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                                         try {
                                             objects.add(ctor.newInstance(1L));
                                         } catch (IllegalArgumentException illegalArgumentException3) {
-                                            objects.add(ctor.newInstance(0.1));
+                                            try {
+                                                objects.add(ctor.newInstance(0.1));
+                                            } catch (IllegalArgumentException illegalArgumentException4) {
+                                                objects.add(ctor.newInstance(true));
+                                            }
                                         }
                                     }
                                 }
