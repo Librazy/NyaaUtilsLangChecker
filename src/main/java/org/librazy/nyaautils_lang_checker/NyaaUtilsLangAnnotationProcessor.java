@@ -536,9 +536,9 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                                 ExecutableElement executableRcElement = (ExecutableElement) rcElement;
                                 rcType = executableRcElement.getReturnType();
                             }
-                            TypeElement rcTypeElement = (TypeElement) typeUtils.asElement(rcType);
+                            Element rcTypeElement = typeUtils.asElement(rcType);
                             if (rcTypeElement == null) {
-                                treesWarn.accept("Using not annotated enum as lang key suffix:");
+                                treesWarn.accept("Using not annotated type as lang key suffix:");
                             } else {
                                 LangKey actualAnnotation = rcElement.getAnnotation(LangKey.class);
                                 if (actualAnnotation == null) {
