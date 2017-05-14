@@ -544,6 +544,14 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                                 if (actualAnnotation == null) {
                                     actualAnnotation = rcTypeElement.getAnnotation(LangKey.class);
                                 }
+                                if (actualAnnotation == null && rcTypeElement instanceof TypeParameterElement) {
+                                    TypeParameterElement rcTypeParameterElement = (TypeParameterElement) rcTypeElement;
+                                    TypeMirror rcTypePara = rcTypeParameterElement.getBounds().get(0);
+                                    Element rcTypeParaElement = typeUtils.asElement(rcTypePara);
+                                    if (rcTypeParaElement != null) {
+                                        actualAnnotation = rcTypeParaElement.getAnnotation(LangKey.class);
+                                    }
+                                }
                                 if (actualAnnotation == null) {
                                     treesWarn.accept("Using not annotated enum(-like) as lang key suffix:");
                                 } else {
@@ -580,7 +588,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     }
                 }
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             treesWarn.accept("Exception in processing:");
             e.printStackTrace();
         }
@@ -710,7 +718,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     value.put(lang.getKey(), key, lang.getValue().get(key));
                 }
             }
-            if (additionalMap.size()== 0 || notFound.size() != internalMap.size()) {
+            if (additionalMap.size() == 0 || notFound.size() != internalMap.size()) {
                 notFound.forEach(langName -> warn.accept("Key " + key + " not found in internal lang " + langName));
             } else {
                 for (Map.Entry<String, Map<String, String>> lang : additionalMap.entrySet()) {
