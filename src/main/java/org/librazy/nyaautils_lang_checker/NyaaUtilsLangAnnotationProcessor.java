@@ -473,7 +473,6 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
 
     private HashBasedTable<String, String, String> visitExpressionTree(TaskEvent taskEvt, LangKey expectingAnnotation, final ExpressionTree expressionTree, boolean canBePrefix, boolean canBeSuffix) {
         TreePath path = TreePath.getPath(taskEvt.getCompilationUnit(), expressionTree);
-        TypeMirror typeMirror = trees.getTypeMirror(path);
         Element element = trees.getElement(path);
         Consumer<String> treesWarn = (String warn) -> trees.printMessage(Diagnostic.Kind.WARNING, warn, expressionTree, taskEvt.getCompilationUnit());
         try {
@@ -521,7 +520,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                         treesWarn.accept("Using raw value " + expressionTree.getKind().toString().toLowerCase() + " as lang key:");
                     }
                 }
-            } else if (element.getAnnotation(LangKey.class) == null && typeMirror.getAnnotation(LangKey.class) == null) {
+            } else if (element.getAnnotation(LangKey.class) == null) {
                 if (expressionTree.getKind() == METHOD_INVOCATION) {
                     MethodInvocationTree methodInvocationTree = (MethodInvocationTree) expressionTree;
                     TreePath mtPath = TreePath.getPath(taskEvt.getCompilationUnit(), methodInvocationTree);
@@ -566,9 +565,6 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                 }
             } else {
                 LangKey actualAnnotation = element.getAnnotation(LangKey.class);
-                if (actualAnnotation == null) {
-                    actualAnnotation = typeMirror.getAnnotation(LangKey.class);
-                }
                 if (actualAnnotation.type() != expectingAnnotation.type()) {
                     if (!actualAnnotation.skipCheck() && checkExpectingAnnotation(canBePrefix, canBeSuffix, expectingAnnotation)) {
                         treesWarn.accept("Expecting " + expectingAnnotation.type().toString().toLowerCase() + ", found " + actualAnnotation.type().toString().toLowerCase() + ":");
