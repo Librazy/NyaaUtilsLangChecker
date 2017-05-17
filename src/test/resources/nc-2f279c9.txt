@@ -1,0 +1,78 @@
+diff --git a/build.gradle b/build.gradle
+index d443e37..16d6230 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -38,7 +38,8 @@ repositories {
+ dependencies {
+     compile 'org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT'
+     compile 'net.milkbowl.vault:VaultAPI:1.6'
+-    processor 'org.librazy:NyaaUtilsLangChecker:1.0-SNAPSHOT'
++    processor 'org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT'
++    processor files('lib/NyaaUtilsLangChecker.jar')
+ }
+ 
+ compileJava {
+diff --git a/src/main/java/cat/nyaa/nyaacore/CommandReceiver.java b/src/main/java/cat/nyaa/nyaacore/CommandReceiver.java
+index 804045c..f444d10 100644
+--- a/src/main/java/cat/nyaa/nyaacore/CommandReceiver.java
++++ b/src/main/java/cat/nyaa/nyaacore/CommandReceiver.java
+@@ -136,7 +136,7 @@ public abstract class CommandReceiver<T extends JavaPlugin> implements CommandEx
+                         f.set(this, obj);
+                     }
+                 } catch (ReflectiveOperationException ex) {
+-                    plugin.getLogger().warning(i18n.getFormatted("internal.error.bad_subcommand", f.toString()));
++                    plugin.getLogger().warning(i18n.getFormatted("internal.error.lc_test1", f.toString()));
+                     obj = null;
+                     ex.printStackTrace();
+                 }
+@@ -195,9 +195,9 @@ public abstract class CommandReceiver<T extends JavaPlugin> implements CommandEx
+                 else
+                     throw new RuntimeException("Failed to invoke subcommand", ex);
+             }
+-            if (!subClassCommand) msg(sender, "internal.info.command_complete");
++            if (!subClassCommand) msg(sender, "internal.lc_test6.command_complete");
+         } catch (NotPlayerException ex) {
+-            msg(sender, "internal.error.not_player");
++            msg(sender, "internal.error.lc_test4");
+         } catch (NoItemInHandException ex) {
+             msg(sender, ex.isOffHand ? "internal.error.no_item_offhand" : "internal.error.no_item_hand");
+         } catch (BadCommandException ex) {
+@@ -409,7 +409,7 @@ public abstract class CommandReceiver<T extends JavaPlugin> implements CommandEx
+ 
+         public int nextInt() {
+             String str = next();
+-            if (str == null) throw new BadCommandException("internal.error.no_more_int");
++            if (str == null) throw new BadCommandException("internal.error.lc_test2");
+             if (str.endsWith("k")) str = str.substring(0, str.length() - 1) + "000";
+             try {
+                 return Integer.parseInt(str);
+@@ -447,7 +447,7 @@ public abstract class CommandReceiver<T extends JavaPlugin> implements CommandEx
+                     throw new BadCommandException("internal.error.no_more_double");
+                 return Double.parseDouble(new DecimalFormat(pattern).format(d));
+             } catch (NumberFormatException ex) {
+-                throw new BadCommandException("internal.error.bad_double", ex, str);
++                throw new BadCommandException("lc_test5.error.bad_double", ex, str);
+             } catch (IllegalArgumentException ex) {
+                 throw new BadCommandException("internal.error.bad_decimal_pattern", ex, pattern);
+             }
+@@ -539,16 +539,16 @@ public abstract class CommandReceiver<T extends JavaPlugin> implements CommandEx
+         /**
+          * get named argument as integer
+          *
+-         * @param key argument name
++         * @param lc_test3 argument name
+          * @return int value
+          */
+-        public int argInt(String key) {
+-            String str = argString(key);
++        public int argInt(String lc_test3) {
++            String str = argString(lc_test3);
+             if (str.endsWith("k")) str = str.substring(0, str.length() - 1) + "000";
+             try {
+                 return Integer.parseInt(str);
+             } catch (NumberFormatException ex) {
+-                throw new BadCommandException("internal.named_argument.not_int", ex, key, str);
++                throw new BadCommandException("internal.named_argument.not_int", ex, lc_test3);
+             }
+         }
+ 

@@ -1,0 +1,100 @@
+diff --git a/build.gradle b/build.gradle
+index ee99c71..0a3d445 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -52,8 +52,8 @@ dependencies {
+     compile files('lib/LocketteProAPI.jar')
+     compile files('lib/EssentialsX-2.0.1-468.jar')
+     compile 'com.sk89q.worldedit:worldedit-bukkit:6.1.5'
+-    compile 'org.librazy:NyaaUtilsLangChecker:1.0-SNAPSHOT'
+-    processor 'org.librazy:NyaaUtilsLangChecker:1.0-SNAPSHOT'
++    processor 'org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT'
++    processor files('lib/NyaaUtilsLangChecker.jar')
+ }
+ 
+ String nyaaCoreLangDir = System.getenv("NYAACORE_LANG_DIR")
+diff --git a/src/main/java/cat/nyaa/nyaautils/CommandHandler.java b/src/main/java/cat/nyaa/nyaautils/CommandHandler.java
+index aa6444c..57a33a5 100644
+--- a/src/main/java/cat/nyaa/nyaautils/CommandHandler.java
++++ b/src/main/java/cat/nyaa/nyaautils/CommandHandler.java
+@@ -70,7 +70,7 @@ public class CommandHandler extends CommandReceiver<NyaaUtils> {
+     @SubCommand(value = "show", permission = "nu.show")
+     public void commandShow(CommandSender sender, Arguments args) {
+         ItemStack item = getItemInHand(sender);
+-        new Message("").append(I18n.format("user.showitem.message", sender.getName()), item).broadcast();
++        new Message("").append(I18n.format("user.lc_test6.message", sender.getName()), item).broadcast();
+     }
+ 
+     /* launch the player into the air and open their elytra */
+diff --git a/src/main/java/cat/nyaa/nyaautils/elytra/ElytraCommands.java b/src/main/java/cat/nyaa/nyaautils/elytra/ElytraCommands.java
+index 289aeec..3084b5d 100644
+--- a/src/main/java/cat/nyaa/nyaautils/elytra/ElytraCommands.java
++++ b/src/main/java/cat/nyaa/nyaautils/elytra/ElytraCommands.java
+@@ -56,7 +56,7 @@ public class ElytraCommands extends CommandReceiver<NyaaUtils> {
+                     FuelItem fuel = new FuelItem(fuelID, item.clone(), durability);
+                     plugin.cfg.fuelConfig.fuel.put(fuelID, fuel.clone());
+                     plugin.cfg.save();
+-                    msg(sender, "user.elytra_enhance.fuel_info", fuelID, durability);
++                    msg(sender, "user.lc_test3.fuel_info", fuelID, durability);
+                     plugin.fuelManager.updateItem(item, fuelID, durability);
+                 }
+             } else {
+diff --git a/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectListener.java b/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectListener.java
+index 287780b..1e1020b 100644
+--- a/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectListener.java
++++ b/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectListener.java
+@@ -43,7 +43,7 @@ public class LootProtectListener implements Listener {
+         Player p = null;
+         if (plugin.cfg.lootProtectMode == LootProtectMode.MAX_DAMAGE) {
+             p = plugin.dsListener.getMaxDamagePlayer(ev.getEntity());
+-        } else if (plugin.cfg.lootProtectMode == LootProtectMode.FINAL_DAMAGE) {
++        } else if (plugin.cfg.lootProtectMode == LootProtectMode.lc_test4) {
+             p = ev.getEntity().getKiller();
+         }
+         if (p == null) return;
+diff --git a/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectMode.java b/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectMode.java
+index 203ce1e..0fa4083 100644
+--- a/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectMode.java
++++ b/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectMode.java
+@@ -7,5 +7,5 @@ import org.librazy.nyaautils_lang_checker.LangKeyType;
+ public enum LootProtectMode {
+     OFF,
+     MAX_DAMAGE,
+-    FINAL_DAMAGE;
++    lc_test4;
+ }
+diff --git a/src/main/java/cat/nyaa/nyaautils/realm/RealmCommands.java b/src/main/java/cat/nyaa/nyaautils/realm/RealmCommands.java
+index 4d5cfb5..800cd19 100644
+--- a/src/main/java/cat/nyaa/nyaautils/realm/RealmCommands.java
++++ b/src/main/java/cat/nyaa/nyaautils/realm/RealmCommands.java
+@@ -53,7 +53,7 @@ public class RealmCommands extends CommandReceiver<NyaaUtils> {
+                 String playerName = args.next();
+                 owner = Bukkit.getOfflinePlayer(playerName);
+                 if (owner == null) {
+-                    msg(sender, "internal.error.player_not_found", playerName);
++                    msg(sender, "internal.error.lc_test1", playerName);
+                     return;
+                 }
+             } else {
+@@ -92,7 +92,7 @@ public class RealmCommands extends CommandReceiver<NyaaUtils> {
+             msg(sender, "user.realm.no_realm");
+             return;
+         }
+-        String type = I18n.format("user.realm.realmtype." + realm.getType().name());
++        String type = I18n.format("user.realm.lc_test2." + realm.getType().name());
+         String owner = realm.getOwner() == null ? "" : I18n.format("user.realm.owner", realm.getOwner().getName());
+         msg(sender, "user.realm.info_0", realm.getName(), type, realm.getPriority(), owner);
+         msg(sender, "user.realm.info_1", realm.getWorld(),
+diff --git a/src/main/java/cat/nyaa/nyaautils/repair/RepairCommands.java b/src/main/java/cat/nyaa/nyaautils/repair/RepairCommands.java
+index 9233e37..2299e13 100644
+--- a/src/main/java/cat/nyaa/nyaautils/repair/RepairCommands.java
++++ b/src/main/java/cat/nyaa/nyaautils/repair/RepairCommands.java
+@@ -51,7 +51,7 @@ public class RepairCommands extends CommandReceiver<NyaaUtils> {
+     public void repairInfo(CommandSender sender, Arguments args) {
+         ItemStack item = getItemInHand(sender);
+         RepairInstance info = new RepairInstance(item, plugin.cfg.repair, plugin);
+-        new Message(I18n.format("user.repair.info_1")).append(item).send(asPlayer(sender));
++        new Message(I18n.format("user.lc_test5.info_1")).append(item).send(asPlayer(sender));
+         msg(sender, "user.repair.info_2", item.getType().name());
+         if (info.stat != REPAIRABLE) {
+             msg(sender, "user.repair.info_3", I18n.format("user.repair.unrepairable." + info.stat.name()));
