@@ -235,7 +235,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     }
 
     @Override
-    public java.lang.String getName() {
+    public String getName() {
         return NyaaUtilsLangAnnotationProcessor.class.getSimpleName();
     }
 
@@ -526,12 +526,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     MethodInvocationTree methodInvocationTree = (MethodInvocationTree) expressionTree;
                     TreePath mtPath = TreePath.getPath(taskEvt.getCompilationUnit(), methodInvocationTree);
                     Element mtElement = trees.getElement(mtPath);
-                    TypeMirror mtType = mtElement.asType();
-                    if (mtElement instanceof ExecutableElement) {
-                        ExecutableElement executableElement = (ExecutableElement) mtElement;
-                        mtType = executableElement.getReturnType();
-                    }
-                    if (mtElement.getAnnotation(LangKey.class) == null && mtType.getAnnotation(LangKey.class) == null) {
+                    if (mtElement.getAnnotation(LangKey.class) == null) {
                         ExpressionTree methodSelect = methodInvocationTree.getMethodSelect();
                         if (methodSelect instanceof MemberSelectTree && (mtElement.getSimpleName().toString().equals("name") || mtElement.getSimpleName().toString().equals("toString"))) {
                             MemberSelectTree memberSelectTree = (MemberSelectTree) methodSelect;
@@ -560,9 +555,6 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                         }
                     } else {
                         LangKey actualAnnotation = mtElement.getAnnotation(LangKey.class);
-                        if (actualAnnotation == null) {
-                            actualAnnotation = mtType.getAnnotation(LangKey.class);
-                        }
                         checkActualAnnotation(canBePrefix, canBeSuffix, treesWarn, actualAnnotation);
                     }
                 } else {
