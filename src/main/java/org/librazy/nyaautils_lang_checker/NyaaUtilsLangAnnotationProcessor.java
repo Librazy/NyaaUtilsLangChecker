@@ -32,7 +32,8 @@ import static com.sun.source.tree.Tree.Kind.*;
         "org.librazy.nyaautils_lang_checker.LangKey",
 })
 @SupportedOptions({
-        "SHOW_NOTE",
+        "LANG_SHOW_DEBUG",
+        "LANG_SHOW_NOTE",
         "LANG_DIR_FULL_PATH",
         "LANG_DIR_ADDITIONAL_PATH",
         "CLASS_OUTPUT_DIR_REGEX_PATH",
@@ -82,20 +83,30 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
 
             super.init(processingEnv);
             Map<String, String> options = this.processingEnv.getOptions();
-            Boolean showNote = options.getOrDefault("SHOW_NOTE", "true").equalsIgnoreCase("true");
+            Boolean showNote = options.getOrDefault("LANG_SHOW_NOTE", "true").equalsIgnoreCase("true");
+            Boolean showDebug = options.getOrDefault("LANG_SHOW_DEBUG", "false").equalsIgnoreCase("true");
             BiConsumer<Diagnostic.Kind, String> msg = (kind, message) -> {
+                if (kind == Diagnostic.Kind.OTHER && !showDebug) return;
                 if (kind == Diagnostic.Kind.NOTE && !showNote) return;
                 processingEnv.getMessager().printMessage(kind, message);
             };
 
             String path = options.get("LANG_DIR_FULL_PATH");
+            msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_FULL_PATH: %s", path));
             String additionalPath = options.get("LANG_DIR_ADDITIONAL_PATH");
+            msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_ADDITIONAL_PATH: %s", additionalPath));
+
             if (path == null) {
                 String pathRegex = options.get("CLASS_OUTPUT_DIR_REGEX_PATH") == null ? "build/classes/(main/|test/)?" : options.get("CLASS_OUTPUT_DIR_REGEX_PATH");
+                msg.accept(Diagnostic.Kind.OTHER, String.format("CLASS_OUTPUT_DIR_REGEX_PATH: %s", pathRegex));
+
                 String langRegex = options.get("LANG_DIR_REGEX_PATH") == null ? "src/main/resources/lang/" : options.get("LANG_DIR_REGEX_PATH");
+                msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_REGEX_PATH: %s", langRegex));
+
                 Filer filer = processingEnv.getFiler();
                 FileObject fileObject = filer.getResource(StandardLocation.CLASS_OUTPUT, "", "langChecker");
                 path = "/" + URLDecoder.decode(fileObject.toUri().toString().replaceFirst(pathRegex + "langChecker", langRegex), StandardCharsets.UTF_8.name()).replaceFirst("file:/", "");
+                msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_FULL_PATH(from reg replace): %s", path));
             }
             File f = new File(path);
             String langExt = options.get("LANG_FILE_EXT") == null ? ".yml" : options.get("LANG_FILE_EXT");

@@ -51,6 +51,8 @@ jobs:
       - grep "lc_test6" build.log
       - popd
       - popd
+      env:
+        - JAVAC_OPTS='-ALANG_SHOW_DEBUG=true'
       before_cache:
         - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
         - rm -f  $HOME/.gradle/caches/4.0-milestone-1/fileHashes/fileHashes.bin
@@ -125,6 +127,7 @@ jobs:
       - popd
       env:
         - GRADLE_OPTS='--add-opens=java.base/java.lang=ALL-UNNAMED'
+        - JAVAC_OPTS='-ALANG_SHOW_DEBUG=true'
       before_cache:
         - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
         - rm -f  $HOME/.gradle/caches/4.0-milestone-1/fileHashes/fileHashes.bin
