@@ -1,8 +1,8 @@
 diff --git a/build.gradle b/build.gradle
-index ee99c71..0a3d445 100644
+index ee99c71..34ede7d 100644
 --- a/build.gradle
 +++ b/build.gradle
-@@ -52,8 +52,8 @@ dependencies {
+@@ -52,14 +52,14 @@ dependencies {
      compile files('lib/LocketteProAPI.jar')
      compile files('lib/EssentialsX-2.0.1-468.jar')
      compile 'com.sk89q.worldedit:worldedit-bukkit:6.1.5'
@@ -13,6 +13,13 @@ index ee99c71..0a3d445 100644
  }
  
  String nyaaCoreLangDir = System.getenv("NYAACORE_LANG_DIR")
+ 
+ compileJava {
+-    options.compilerArgs += ["-Xplugin:NyaaUtilsLangAnnotationProcessor", "-Xlint:deprecation", "-Xlint:unchecked"]
++    options.compilerArgs += ["-Xplugin:NyaaUtilsLangAnnotationProcessor", "-Xlint:deprecation", "-Xlint:unchecked", "-ALANG_SHOW_DEBUG=true"]
+     if (nyaaCoreLangDir != null) {
+         options.compilerArgs += ["-ALANG_DIR_ADDITIONAL_PATH=" + nyaaCoreLangDir]
+     }
 diff --git a/src/main/java/cat/nyaa/nyaautils/CommandHandler.java b/src/main/java/cat/nyaa/nyaautils/CommandHandler.java
 index aa6444c..57a33a5 100644
 --- a/src/main/java/cat/nyaa/nyaautils/CommandHandler.java

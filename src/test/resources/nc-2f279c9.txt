@@ -1,8 +1,8 @@
 diff --git a/build.gradle b/build.gradle
-index d443e37..16d6230 100644
+index d443e37..989a6b2 100644
 --- a/build.gradle
 +++ b/build.gradle
-@@ -38,7 +38,8 @@ repositories {
+@@ -38,11 +38,12 @@ repositories {
  dependencies {
      compile 'org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT'
      compile 'net.milkbowl.vault:VaultAPI:1.6'
@@ -12,6 +12,11 @@ index d443e37..16d6230 100644
  }
  
  compileJava {
+-    options.compilerArgs += ["-Xplugin:NyaaUtilsLangAnnotationProcessor", "-Xlint:deprecation"]
++    options.compilerArgs += ["-Xplugin:NyaaUtilsLangAnnotationProcessor", "-Xlint:deprecation", "-ALANG_SHOW_DEBUG=true"]
+ }
+ 
+ publishing {
 diff --git a/src/main/java/cat/nyaa/nyaacore/CommandReceiver.java b/src/main/java/cat/nyaa/nyaacore/CommandReceiver.java
 index 804045c..f444d10 100644
 --- a/src/main/java/cat/nyaa/nyaacore/CommandReceiver.java
