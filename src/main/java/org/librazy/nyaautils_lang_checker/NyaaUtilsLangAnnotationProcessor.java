@@ -95,9 +95,10 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
             msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_FULL_PATH: %s", path));
             String additionalPath = options.get("LANG_DIR_ADDITIONAL_PATH");
             msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_ADDITIONAL_PATH: %s", additionalPath));
-
+            //Stupid method to find out file location, a sad story. https://stackoverflow.com/questions/22494596/eclipse-annotation-processor-get-project-path
             if (path == null) {
-                String pathRegex = options.get("CLASS_OUTPUT_DIR_REGEX_PATH") == null ? "build/classes/(main/|test/)?" : options.get("CLASS_OUTPUT_DIR_REGEX_PATH");
+                //https://docs.gradle.org/4.0-rc-1/release-notes.html#location-of-classes-in-the-build-directory
+                String pathRegex = options.get("CLASS_OUTPUT_DIR_REGEX_PATH") == null ? "build/classes/(java/)?(main/|test/)?" : options.get("CLASS_OUTPUT_DIR_REGEX_PATH");
                 msg.accept(Diagnostic.Kind.OTHER, String.format("CLASS_OUTPUT_DIR_REGEX_PATH: %s", pathRegex));
 
                 String langRegex = options.get("LANG_DIR_REGEX_PATH") == null ? "src/main/resources/lang/" : options.get("LANG_DIR_REGEX_PATH");
@@ -106,6 +107,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                 Filer filer = processingEnv.getFiler();
                 FileObject fileObject = filer.getResource(StandardLocation.CLASS_OUTPUT, "", "langChecker");
                 path = "/" + URLDecoder.decode(fileObject.toUri().toString().replaceFirst(pathRegex + "langChecker", langRegex), StandardCharsets.UTF_8.name()).replaceFirst("file:/", "");
+                msg.accept(Diagnostic.Kind.OTHER, String.format("testing file: %s", fileObject.toUri().toString()));
                 msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_FULL_PATH(from reg replace): %s", path));
             }
             File f = new File(path);
