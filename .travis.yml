@@ -65,10 +65,9 @@ jobs:
           - $HOME/.gradle/wrapper/
     - stage: test
       language: java
+      sudo: false
       dist: trusty
       jdk: oraclejdk9
-      sudo: true
-      group: edge
       before_install:
       - if echo "$TRAVIS_COMMIT_MESSAGE" | grep -F -q "[skip travis test]" ; then echo "skipping travis test" && exit 0 ; fi
       - git config --global user.email "builds@travis-ci.com"
@@ -85,7 +84,7 @@ jobs:
       - export NYAACORE_LANG_DIR=`readlink -f ./NyaaCat/NyaaCore/src/main/resources/lang/`
       - popd
       install: true
-      before_script: ./gradlew --no-daemon build
+      before_script: ./gradlew build
       script:
       - export BUILT_JAR=`readlink -f ./build/libs/NyaaUtilsLangChecker.jar`
       - export PATCH_DIR=`readlink -f ./src/test/resources/`
@@ -102,7 +101,7 @@ jobs:
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
       - cp -R $GRADLEW_LC .
       - cp $GRADLEW_SH_LC .
-      - ./gradlew --no-daemon assemble 2>&1 | tee build.log
+      - ./gradlew assemble 2>&1 | tee build.log
       - grep "lc_test1" build.log
       - grep "lc_test2" build.log
       - grep "lc_test3" build.log
@@ -116,7 +115,7 @@ jobs:
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
       - cp -R $GRADLEW_LC .
       - cp $GRADLEW_SH_LC .
-      - ./gradlew --no-daemon assemble 2>&1 | tee build.log
+      - ./gradlew assemble 2>&1 | tee build.log
       - grep "lc_test1" build.log
       - grep "lc_test2" build.log
       - grep "lc_test3" build.log
@@ -126,7 +125,6 @@ jobs:
       - popd
       - popd
       env:
-        - GRADLE_OPTS='--add-opens=java.base/java.lang=ALL-UNNAMED'
         - JAVAC_OPTS='-ALANG_SHOW_DEBUG=true'
       before_cache:
         - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
@@ -155,7 +153,7 @@ jobs:
       - echo "https://$GITHUB_KEY:@github.com" > .git/credentials
       - git push -q --follow-tags
       - gem install octokit -v 4.3.0
-      - gradle publish
+      - ./gradlew publish
       - cd ..
       - git clone -b maven-repo $GIT_ORIGIN_URL NyaaUtilsLangChecker-mvn
       - cp -r NyaaUtilsLangChecker/build/repo/org NyaaUtilsLangChecker-mvn/
