@@ -2,11 +2,10 @@
 <metadata>
   <groupId>org.librazy</groupId>
   <artifactId>NyaaUtilsLangChecker</artifactId>
-  <version>1.0-SNAPSHOT</version>
   <versioning>
     <versions>
       <version>1.0-SNAPSHOT</version>
     </versions>
-    <lastUpdated>20170617065231</lastUpdated>
+    <lastUpdated>20170724010234</lastUpdated>
   </versioning>
 </metadata>
