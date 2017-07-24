@@ -22,7 +22,7 @@ repositories {
 
 dependencies {
     compileOnly files("lib/tools.jar")
-    implementation 'org.spigotmc:spigot-api:1.12-R0.1-SNAPSHOT'
+    compileOnly 'org.spigotmc:spigot-api:1.12-R0.1-SNAPSHOT'
 }
 
 publishing {
