@@ -1,4 +1,4 @@
-apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'maven-publish'
 
 group 'org.librazy'
@@ -21,8 +21,8 @@ repositories {
 }
 
 dependencies {
-    compile files("lib/tools.jar")
-    compile('org.spigotmc:spigot-api:1.12-R0.1-SNAPSHOT')
+    compileOnly files("lib/tools.jar")
+    implementation 'org.spigotmc:spigot-api:1.12-R0.1-SNAPSHOT'
 }
 
 publishing {
