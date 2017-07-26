@@ -21,7 +21,10 @@ repositories {
 }
 
 dependencies {
-    compileOnly files("lib/tools.jar")
+    if((JavaVersion.current() <=> JavaVersion.VERSION_1_9) < 0){
+        def gradleJavaRuntimeDir = new File(System.properties["java.home"].toString())
+        compile files("${gradleJavaRuntimeDir}/../lib/tools.jar") // JDK
+    }
     compileOnly 'org.spigotmc:spigot-api:1.12-R0.1-SNAPSHOT'
 }
 
