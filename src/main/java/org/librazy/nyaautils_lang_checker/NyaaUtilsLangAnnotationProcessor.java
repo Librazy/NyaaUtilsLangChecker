@@ -53,7 +53,6 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     private static int newClassCounter;
     private static Boolean showNote;
     private static Boolean showDebug;
-    private static BiConsumer<Diagnostic.Kind, String> msg;
     /**
      * add all language items from section into language map recursively
      * overwrite existing items
@@ -89,7 +88,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
             Map<String, String> options = this.processingEnv.getOptions();
             showNote = options.getOrDefault("LANG_SHOW_NOTE", "true").equalsIgnoreCase("true");
             showDebug = options.getOrDefault("LANG_SHOW_DEBUG", "false").equalsIgnoreCase("true");
-            msg = (kind, message) -> {
+            BiConsumer<Diagnostic.Kind, String> msg = (kind, message) -> {
                 if (kind == Diagnostic.Kind.OTHER && !showDebug) return;
                 if (kind == Diagnostic.Kind.NOTE && !showNote) return;
                 processingEnv.getMessager().printMessage(kind, message);
@@ -409,8 +408,10 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            msg.accept(Diagnostic.Kind.OTHER, "methodInvocation: " + methodInvocationCounter);
-            msg.accept(Diagnostic.Kind.OTHER, "newClass: " + newClassCounter);
+            if(showDebug){
+                trees.printMessage(Diagnostic.Kind.OTHER, "methodInvocation: " + methodInvocationCounter, taskEvt.getCompilationUnit(), taskEvt.getCompilationUnit());
+                trees.printMessage(Diagnostic.Kind.OTHER, "newClass: " + newClassCounter, taskEvt.getCompilationUnit(), taskEvt.getCompilationUnit());
+            }
         }
     }
 
