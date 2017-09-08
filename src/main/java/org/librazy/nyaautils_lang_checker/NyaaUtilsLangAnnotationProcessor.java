@@ -404,14 +404,13 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                         return super.visitNewClass(methodInv, v);
                     }
                 }, null);
+                if(showDebug){
+                    trees.printMessage(Diagnostic.Kind.OTHER, "methodInvocation: " + methodInvocationCounter, taskEvt.getCompilationUnit(), taskEvt.getCompilationUnit());
+                    trees.printMessage(Diagnostic.Kind.OTHER, "newClass: " + newClassCounter, taskEvt.getCompilationUnit(), taskEvt.getCompilationUnit());
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            if(showDebug){
-                trees.printMessage(Diagnostic.Kind.OTHER, "methodInvocation: " + methodInvocationCounter, taskEvt.getCompilationUnit(), taskEvt.getCompilationUnit());
-                trees.printMessage(Diagnostic.Kind.OTHER, "newClass: " + newClassCounter, taskEvt.getCompilationUnit(), taskEvt.getCompilationUnit());
-            }
         }
     }
 
