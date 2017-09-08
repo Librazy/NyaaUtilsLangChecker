@@ -49,7 +49,11 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     private static ProcessingEnvironment processingEnvironment;
     private static Trees trees;
     private static Types typeUtils;
-
+    private static int methodInvocationCounter;
+    private static int newClassCounter;
+    private Boolean showNote;
+    private Boolean showDebug;
+    private BiConsumer<Diagnostic.Kind, String> msg;
     /**
      * add all language items from section into language map recursively
      * overwrite existing items
@@ -83,9 +87,9 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
 
             super.init(processingEnv);
             Map<String, String> options = this.processingEnv.getOptions();
-            Boolean showNote = options.getOrDefault("LANG_SHOW_NOTE", "true").equalsIgnoreCase("true");
-            Boolean showDebug = options.getOrDefault("LANG_SHOW_DEBUG", "false").equalsIgnoreCase("true");
-            BiConsumer<Diagnostic.Kind, String> msg = (kind, message) -> {
+            showNote = options.getOrDefault("LANG_SHOW_NOTE", "true").equalsIgnoreCase("true");
+            showDebug = options.getOrDefault("LANG_SHOW_DEBUG", "false").equalsIgnoreCase("true");
+            msg = (kind, message) -> {
                 if (kind == Diagnostic.Kind.OTHER && !showDebug) return;
                 if (kind == Diagnostic.Kind.NOTE && !showNote) return;
                 processingEnv.getMessager().printMessage(kind, message);
@@ -378,6 +382,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                             List<LangKey> langKeyList = method.getParameters().stream().map(var -> var.getAnnotation(LangKey.class)).collect(Collectors.toList());
                             List<? extends ExpressionTree> rawArgumentList = methodInv.getArguments();
                             visitArgList(langKeyList, rawArgumentList, taskEvt);
+                            ++methodInvocationCounter;
                         }
                         return super.visitMethodInvocation(methodInv, v);
                     }
@@ -392,6 +397,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                         }
                         if (method == null) return super.visitNewClass(methodInv, v);
                         if (method.getParameters().stream().anyMatch(var -> var.getAnnotation(LangKey.class) != null)) {
+                            ++newClassCounter;
                             List<LangKey> langKeyList = method.getParameters().stream().map(var -> var.getAnnotation(LangKey.class)).collect(Collectors.toList());
                             List<? extends ExpressionTree> rawArgumentList = methodInv.getArguments();
                             visitArgList(langKeyList, rawArgumentList, taskEvt);
@@ -402,6 +408,9 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            msg.accept(Diagnostic.Kind.OTHER, "methodInvocation: " + methodInvocationCounter);
+            msg.accept(Diagnostic.Kind.OTHER, "newClass: " + newClassCounter);
         }
     }
 
