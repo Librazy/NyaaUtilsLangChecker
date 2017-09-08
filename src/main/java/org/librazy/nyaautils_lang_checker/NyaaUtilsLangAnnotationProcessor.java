@@ -51,8 +51,8 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     private static Types typeUtils;
     private static int methodInvocationCounter;
     private static int newClassCounter;
-    private static Boolean showNote;
-    private static Boolean showDebug;
+    private static boolean showNote;
+    private static boolean showDebug;
     /**
      * add all language items from section into language map recursively
      * overwrite existing items
