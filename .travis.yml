@@ -55,8 +55,8 @@ jobs:
         - JAVAC_OPTS='-ALANG_SHOW_DEBUG=true'
       before_cache:
         - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-        - rm -f  $HOME/.gradle/caches/4.1-rc-1/fileHashes/fileHashes.bin
-        - rm -f  $HOME/.gradle/caches/4.1-rc-1/fileHashes/fileHashes.lock
+        - rm -f  $HOME/.gradle/caches/4.1/fileHashes/fileHashes.bin
+        - rm -f  $HOME/.gradle/caches/4.1/fileHashes/fileHashes.lock
         - rm -f  $HOME/.gradle/caches/transforms-1/transforms-1.lock
         - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
       cache:
@@ -128,8 +128,8 @@ jobs:
         - JAVAC_OPTS='-ALANG_SHOW_DEBUG=true'
       before_cache:
         - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-        - rm -f  $HOME/.gradle/caches/4.1-rc-1/fileHashes/fileHashes.bin
-        - rm -f  $HOME/.gradle/caches/4.1-rc-1/fileHashes/fileHashes.lock
+        - rm -f  $HOME/.gradle/caches/4.1/fileHashes/fileHashes.bin
+        - rm -f  $HOME/.gradle/caches/4.1/fileHashes/fileHashes.lock
         - rm -f  $HOME/.gradle/caches/transforms-1/transforms-1.lock
         - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
       cache:
@@ -151,7 +151,7 @@ jobs:
       - git tag $GIT_TAG -a -m "Generated tag from TravisCI for build $TRAVIS_BUILD_NUMBER"
       - git config credential.helper "store --file=.git/credentials"
       - echo "https://$GITHUB_KEY:@github.com" > .git/credentials
-      - git push -q --follow-tags
+      - git push origin HEAD:$TRAVIS_BRANCH -q --follow-tags
       - gem install octokit -v 4.3.0
       - ./gradlew publish
       - cd ..
@@ -175,8 +175,8 @@ jobs:
           all_branches: true
       before_cache:
         - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-        - rm -f  $HOME/.gradle/caches/4.1-rc-1/fileHashes/fileHashes.bin
-        - rm -f  $HOME/.gradle/caches/4.1-rc-1/fileHashes/fileHashes.lock
+        - rm -f  $HOME/.gradle/caches/4.1/fileHashes/fileHashes.bin
+        - rm -f  $HOME/.gradle/caches/4.1/fileHashes/fileHashes.lock
         - rm -f  $HOME/.gradle/caches/transforms-1/transforms-1.lock
         - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
       cache:
