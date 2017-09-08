@@ -30,7 +30,7 @@ jobs:
       - git apply $PATCH_DIR/nu-cb6576d.txt
       - mkdir -p lib/
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
-      - gradle assemble 2>&1 | tee build.log
+      - gradle assemble --stacktrace --debug 2>&1 | tee build.log
       - grep "lc_test1" build.log
       - grep "lc_test2" build.log
       - grep "lc_test3" build.log
@@ -42,7 +42,7 @@ jobs:
       - git apply $PATCH_DIR/nc-2f279c9.txt
       - mkdir -p lib/
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
-      - gradle assemble 2>&1 | tee build.log
+      - gradle assemble  --stacktrace --debug 2>&1 | tee build.log
       - grep "lc_test1" build.log
       - grep "lc_test2" build.log
       - grep "lc_test3" build.log
@@ -101,7 +101,7 @@ jobs:
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
       - cp -R $GRADLEW_LC .
       - cp $GRADLEW_SH_LC .
-      - ./gradlew assemble 2>&1 | tee build.log
+      - ./gradlew assemble  --stacktrace --debug 2>&1 | tee build.log
       - grep "lc_test1" build.log
       - grep "lc_test2" build.log
       - grep "lc_test3" build.log
@@ -115,7 +115,7 @@ jobs:
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
       - cp -R $GRADLEW_LC .
       - cp $GRADLEW_SH_LC .
-      - ./gradlew assemble 2>&1 | tee build.log
+      - ./gradlew assemble --stacktrace --debug 2>&1 | tee build.log
       - grep "lc_test1" build.log
       - grep "lc_test2" build.log
       - grep "lc_test3" build.log
