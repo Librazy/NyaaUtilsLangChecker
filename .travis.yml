@@ -67,7 +67,7 @@ jobs:
       language: java
       sudo: false
       dist: trusty
-      jdk: oraclejdk9
+      jdk: openjdk11
       before_install:
       - if echo "$TRAVIS_COMMIT_MESSAGE" | grep -F -q "[skip travis test]" ; then echo "skipping travis test" && exit 0 ; fi
       - git config --global user.email "builds@travis-ci.com"

@@ -63,7 +63,7 @@ diff --git a/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectMode.java b
 index 203ce1e..0fa4083 100644
 --- a/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectMode.java
 +++ b/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectMode.java
-@@ -7,5 +7,5 @@ import org.librazy.nyaautils_lang_checker.LangKeyType;
+@@ -7,5 +7,5 @@ import org.librazy.nclangchecker.LangKeyType;
  public enum LootProtectMode {
      OFF,
      MAX_DAMAGE,

@@ -1,4 +1,4 @@
-package org.librazy.nyaautils_lang_checker;
+package org.librazy.nclangchecker;
 
 public enum LangKeyType {
     KEY,

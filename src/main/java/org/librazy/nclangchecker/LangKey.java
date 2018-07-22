@@ -1,4 +1,4 @@
-package org.librazy.nyaautils_lang_checker;
+package org.librazy.nclangchecker;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

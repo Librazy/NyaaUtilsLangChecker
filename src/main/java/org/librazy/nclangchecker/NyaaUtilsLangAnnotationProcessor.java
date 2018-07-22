@@ -1,4 +1,4 @@
-package org.librazy.nyaautils_lang_checker;
+package org.librazy.nclangchecker;
 
 import com.google.common.collect.HashBasedTable;
 import com.sun.source.tree.*;
@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 import static com.sun.source.tree.Tree.Kind.*;
 
 @SupportedAnnotationTypes({
-        "org.librazy.nyaautils_lang_checker.LangKey",
+        "org.librazy.nclangchecker.LangKey",
 })
 @SupportedOptions({
         "LANG_SHOW_DEBUG",
