@@ -11,7 +11,6 @@ import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
 import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
@@ -454,17 +453,12 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                                     typeStr = typeStr.substring(0, hasLt);
                                 }
                                 Class<?> clazz = Class.forName(typeStr);
-                                if (clazz.isAssignableFrom(List.class)) {
-                                    if (tm.getKind().equals(TypeKind.DECLARED)) {
-                                        DeclaredType dt = (DeclaredType) tm;
-                                        TypeMirror ta = dt.getTypeArguments().get(0);
-                                        Class<?> claza = Class.forName(ta.toString());
-                                        ArrayList list = new ArrayList();
-                                        list.add(getInstanceOf(claza));
-                                        objects.add(list);
-                                    } else {
-                                        throw new UnsupportedOperationException();
-                                    }
+                                if (clazz.equals(List.class)) {
+                                    DeclaredType dt = (DeclaredType) tm;
+                                    TypeMirror ta = dt.getTypeArguments().get(0);
+                                    Class<?> claza = Class.forName(ta.toString());
+                                    ArrayList list = new ArrayList();
+                                    list.add(getInstanceOf(claza));
                                 } else {
                                     objects.add(getInstanceOf(clazz));
                                 }
