@@ -447,8 +447,13 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                             if (tm.getKind().isPrimitive()) {
                                 tm = typeUtils.boxedClass(typeUtils.getPrimitiveType(tm.getKind())).asType();
                             }
+                            String typeStr = tm.toString();
                             try {
-                                Class<?> clazz = Class.forName(tm.toString());
+                                int hasLt = typeStr.indexOf('<');
+                                if (hasLt != -1) {
+                                    typeStr = typeStr.substring(0, hasLt);
+                                }
+                                Class<?> clazz = Class.forName(typeStr);
                                 if (clazz.isAssignableFrom(List.class)) {
                                     if (tm.getKind().equals(TypeKind.DECLARED)) {
                                         DeclaredType dt = (DeclaredType) tm;
@@ -460,10 +465,11 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                                     } else {
                                         throw new UnsupportedOperationException();
                                     }
+                                } else {
+                                    objects.add(getInstanceOf(clazz));
                                 }
-                                objects.add(getInstanceOf(clazz));
                             } catch (Exception e) {
-                                treesWarn.accept("Unsupported type used as lang formatter argument: " + tm.toString());
+                                treesWarn.accept("Unsupported type used as lang formatter argument: " + typeStr);
                                 if (showDebug) {
                                     e.printStackTrace();
                                 }
