@@ -10,6 +10,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
@@ -53,6 +55,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     private static int newClassCounter;
     private static boolean showNote;
     private static boolean showDebug;
+
     /**
      * add all language items from section into language map recursively
      * overwrite existing items
@@ -98,21 +101,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
             msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_FULL_PATH: %s", path));
             String additionalPath = options.get("LANG_DIR_ADDITIONAL_PATH");
             msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_ADDITIONAL_PATH: %s", additionalPath));
-            //Stupid method to find out file location, a sad story. https://stackoverflow.com/questions/22494596/eclipse-annotation-processor-get-project-path
-            if (path == null) {
-                //https://docs.gradle.org/4.0-rc-1/release-notes.html#location-of-classes-in-the-build-directory
-                String pathRegex = options.get("CLASS_OUTPUT_DIR_REGEX_PATH") == null ? "build/classes/(java/)?(main/|test/)?" : options.get("CLASS_OUTPUT_DIR_REGEX_PATH");
-                msg.accept(Diagnostic.Kind.OTHER, String.format("CLASS_OUTPUT_DIR_REGEX_PATH: %s", pathRegex));
-
-                String langRegex = options.get("LANG_DIR_REGEX_PATH") == null ? "src/main/resources/lang/" : options.get("LANG_DIR_REGEX_PATH");
-                msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_REGEX_PATH: %s", langRegex));
-
-                Filer filer = processingEnv.getFiler();
-                FileObject fileObject = filer.getResource(StandardLocation.CLASS_OUTPUT, "", "langChecker");
-                path = "/" + URLDecoder.decode(fileObject.toUri().toString().replaceFirst(pathRegex + "langChecker", langRegex), StandardCharsets.UTF_8.name()).replaceFirst("file:/", "");
-                msg.accept(Diagnostic.Kind.OTHER, String.format("testing file: %s", fileObject.toUri().toString()));
-                msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_FULL_PATH(from reg replace): %s", path));
-            }
+            path = getProjectPath(processingEnv, options, msg, path);
             File f = new File(path);
             String langExt = options.get("LANG_FILE_EXT") == null ? ".yml" : options.get("LANG_FILE_EXT");
             if (f.getPath().endsWith("langChecker")) {
@@ -140,32 +129,55 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     additionalFiles = Arrays.asList(files);
                 }
             }
-            msg.accept(Diagnostic.Kind.NOTE, "Loaded lang files:");
-            for (File file : langFiles) {
-                try {
-                    msg.accept(Diagnostic.Kind.NOTE, file.getCanonicalPath());
-                } catch (IOException e) {
-                    msg.accept(Diagnostic.Kind.WARNING, "Fail to load lang file: " + file.getPath());
-                    msg.accept(Diagnostic.Kind.WARNING, e.getMessage());
-                }
-            }
-            if (additionalFiles != null) {
-                msg.accept(Diagnostic.Kind.NOTE, "Loaded additional lang files:");
-                for (File file : additionalFiles) {
-                    try {
-                        msg.accept(Diagnostic.Kind.NOTE, file.getCanonicalPath());
-                    } catch (IOException e) {
-                        msg.accept(Diagnostic.Kind.WARNING, "Fail to load additional lang file: " + file.getPath());
-                        msg.accept(Diagnostic.Kind.WARNING, e.getMessage());
-                    }
-                }
-            }
             loadInternalMap(additionalFiles, additionalMap);
             loadInternalMap(langFiles, internalMap);
             loadLanguageMap(langFiles);
+            listLoadedFiles(msg, langFiles, additionalFiles);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void listLoadedFiles(BiConsumer<Diagnostic.Kind, String> msg, List<File> langFiles, List<File> additionalFiles) {
+        msg.accept(Diagnostic.Kind.NOTE, "Loaded lang files:");
+        for (File file : langFiles) {
+            try {
+                msg.accept(Diagnostic.Kind.NOTE, file.getCanonicalPath());
+            } catch (IOException e) {
+                msg.accept(Diagnostic.Kind.WARNING, "Fail to load lang file: " + file.getPath());
+                msg.accept(Diagnostic.Kind.WARNING, e.getMessage());
+            }
+        }
+        if (additionalFiles != null) {
+            msg.accept(Diagnostic.Kind.NOTE, "Loaded additional lang files:");
+            for (File file : additionalFiles) {
+                try {
+                    msg.accept(Diagnostic.Kind.NOTE, file.getCanonicalPath());
+                } catch (IOException e) {
+                    msg.accept(Diagnostic.Kind.WARNING, "Fail to load additional lang file: " + file.getPath());
+                    msg.accept(Diagnostic.Kind.WARNING, e.getMessage());
+                }
+            }
+        }
+    }
+
+    private String getProjectPath(ProcessingEnvironment processingEnv, Map<String, String> options, BiConsumer<Diagnostic.Kind, String> msg, String path) throws IOException {
+        //Stupid method to find out file location, a sad story. https://stackoverflow.com/questions/22494596/eclipse-annotation-processor-get-project-path
+        if (path == null) {
+            //https://docs.gradle.org/4.0-rc-1/release-notes.html#location-of-classes-in-the-build-directory
+            String pathRegex = options.get("CLASS_OUTPUT_DIR_REGEX_PATH") == null ? "build/classes/(java/)?(main/|test/)?" : options.get("CLASS_OUTPUT_DIR_REGEX_PATH");
+            msg.accept(Diagnostic.Kind.OTHER, String.format("CLASS_OUTPUT_DIR_REGEX_PATH: %s", pathRegex));
+
+            String langRegex = options.get("LANG_DIR_REGEX_PATH") == null ? "src/main/resources/lang/" : options.get("LANG_DIR_REGEX_PATH");
+            msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_REGEX_PATH: %s", langRegex));
+
+            Filer filer = processingEnv.getFiler();
+            FileObject fileObject = filer.getResource(StandardLocation.CLASS_OUTPUT, "", "langChecker");
+            path = "/" + URLDecoder.decode(fileObject.toUri().toString().replaceFirst(pathRegex + "langChecker", langRegex), StandardCharsets.UTF_8.name()).replaceFirst("file:/", "");
+            msg.accept(Diagnostic.Kind.OTHER, String.format("testing file: %s", fileObject.toUri().toString()));
+            msg.accept(Diagnostic.Kind.OTHER, String.format("LANG_DIR_FULL_PATH(from reg replace): %s", path));
+        }
+        return path;
     }
 
     @Override
@@ -225,12 +237,11 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
         if (files == null) return;
         map.clear();
         for (File f : files) {
-            try {
-                InputStream stream = new FileInputStream(f);
+            try (InputStream stream = new FileInputStream(f)) {
                 ConfigurationSection section = YamlConfiguration.loadConfiguration(new InputStreamReader(stream));
                 map.put(f.getName(), new HashMap<>());
                 loadLanguageSection(map.get(f.getName()), section.getConfigurationSection("internal"), "internal.", false, true);
-            } catch (FileNotFoundException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
@@ -239,12 +250,11 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
     private void loadLanguageMap(List<File> files) {
         map.clear();
         for (File f : files) {
-            try {
-                InputStream stream = new FileInputStream(f);
+            try (InputStream stream = new FileInputStream(f)) {
                 ConfigurationSection section = YamlConfiguration.loadConfiguration(new InputStreamReader(stream));
                 map.put(f.getName(), new HashMap<>());
                 loadLanguageSection(map.get(f.getName()), section, "", true, false);
-            } catch (FileNotFoundException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
@@ -404,7 +414,7 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                         return super.visitNewClass(methodInv, v);
                     }
                 }, null);
-                if(showDebug){
+                if (showDebug) {
                     trees.printMessage(Diagnostic.Kind.OTHER, "methodInvocation: " + methodInvocationCounter, taskEvt.getCompilationUnit(), taskEvt.getCompilationUnit());
                     trees.printMessage(Diagnostic.Kind.OTHER, "newClass: " + newClassCounter, taskEvt.getCompilationUnit(), taskEvt.getCompilationUnit());
                 }
@@ -439,43 +449,24 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                             }
                             try {
                                 Class<?> clazz = Class.forName(tm.toString());
-                                Constructor<?> ctor;
-                                try {
-                                    ctor = clazz.getConstructor();
-                                } catch (NoSuchMethodException noSuchMethodException) {
-                                    try {
-                                        ctor = clazz.getConstructor(int.class);
-                                    } catch (NoSuchMethodException noSuchMethodException2) {
-                                        try {
-                                            ctor = clazz.getConstructor(long.class);
-                                        } catch (NoSuchMethodException noSuchMethodException3) {
-                                            try {
-                                                ctor = clazz.getConstructor(double.class);//float has a double constructor too
-                                            } catch (NoSuchMethodException noSuchMethodException4) {
-                                                ctor = clazz.getConstructor(boolean.class);
-                                            }
-                                        }
+                                if (clazz.isAssignableFrom(List.class)) {
+                                    if (tm.getKind().equals(TypeKind.DECLARED)) {
+                                        DeclaredType dt = (DeclaredType) tm;
+                                        TypeMirror ta = dt.getTypeArguments().get(0);
+                                        Class<?> claza = Class.forName(ta.toString());
+                                        ArrayList list = new ArrayList();
+                                        list.add(getInstanceOf(claza));
+                                        objects.add(list);
+                                    } else {
+                                        throw new UnsupportedOperationException();
                                     }
                                 }
-                                try {
-                                    objects.add(ctor.newInstance());
-                                } catch (IllegalArgumentException illegalArgumentException) {
-                                    try {
-                                        objects.add(ctor.newInstance(1));
-                                    } catch (IllegalArgumentException illegalArgumentException2) {
-                                        try {
-                                            objects.add(ctor.newInstance(1L));
-                                        } catch (IllegalArgumentException illegalArgumentException3) {
-                                            try {
-                                                objects.add(ctor.newInstance(0.1));
-                                            } catch (IllegalArgumentException illegalArgumentException4) {
-                                                objects.add(ctor.newInstance(true));
-                                            }
-                                        }
-                                    }
-                                }
+                                objects.add(getInstanceOf(clazz));
                             } catch (Exception e) {
                                 treesWarn.accept("Unsupported type used as lang formatter argument: " + tm.toString());
+                                if (showDebug) {
+                                    e.printStackTrace();
+                                }
                                 valueEntries.clear();
                             }
                         });
@@ -489,6 +480,44 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
                     }
                 }
                 return;
+            }
+        }
+    }
+
+    private Object getInstanceOf(Class<?> clazz) throws NoSuchMethodException, InstantiationException, IllegalAccessException, java.lang.reflect.InvocationTargetException {
+        Constructor<?> ctor;
+        try {
+            ctor = clazz.getConstructor();
+        } catch (NoSuchMethodException noSuchMethodException) {
+            try {
+                ctor = clazz.getConstructor(int.class);
+            } catch (NoSuchMethodException noSuchMethodException2) {
+                try {
+                    ctor = clazz.getConstructor(long.class);
+                } catch (NoSuchMethodException noSuchMethodException3) {
+                    try {
+                        ctor = clazz.getConstructor(double.class);//float has a double constructor too
+                    } catch (NoSuchMethodException noSuchMethodException4) {
+                        ctor = clazz.getConstructor(boolean.class);
+                    }
+                }
+            }
+        }
+        try {
+            return ctor.newInstance();
+        } catch (IllegalArgumentException illegalArgumentException) {
+            try {
+                return ctor.newInstance(1);
+            } catch (IllegalArgumentException illegalArgumentException2) {
+                try {
+                    return ctor.newInstance(1L);
+                } catch (IllegalArgumentException illegalArgumentException3) {
+                    try {
+                        return ctor.newInstance(0.1);
+                    } catch (IllegalArgumentException illegalArgumentException4) {
+                        return ctor.newInstance(true);
+                    }
+                }
             }
         }
     }
@@ -617,9 +646,9 @@ public class NyaaUtilsLangAnnotationProcessor extends AbstractProcessor implemen
 
     private boolean checkExpectingAnnotation(boolean canBePrefix, boolean canBeSuffix, LangKey expectingAnnotation) {
         return !(canBePrefix && canBeSuffix && (expectingAnnotation.type() != LangKeyType.KEY))
-                && !(canBePrefix && !canBeSuffix && (expectingAnnotation.type() != LangKeyType.PREFIX))
-                && !(!canBePrefix && canBeSuffix && (expectingAnnotation.type() != LangKeyType.SUFFIX))
-                && !(!canBePrefix && !canBeSuffix && (expectingAnnotation.type() != LangKeyType.INFIX));
+                       && !(canBePrefix && !canBeSuffix && (expectingAnnotation.type() != LangKeyType.PREFIX))
+                       && !(!canBePrefix && canBeSuffix && (expectingAnnotation.type() != LangKeyType.SUFFIX))
+                       && !(!canBePrefix && !canBeSuffix && (expectingAnnotation.type() != LangKeyType.INFIX));
     }
 
     private void checkKeyPrefix(LangKey annotation, String prefix, Tree tree, CompilationUnitTree cut) {

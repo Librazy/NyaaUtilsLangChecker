@@ -25,7 +25,7 @@ dependencies {
         def gradleJavaRuntimeDir = new File(System.properties["java.home"].toString())
         compile files("${gradleJavaRuntimeDir}/../lib/tools.jar") // JDK
     }
-    compileOnly 'org.spigotmc:spigot-api:1.13-R0.1-SNAPSHOT'
+    implementation 'org.spigotmc:spigot-api:1.13-R0.1-SNAPSHOT'
 }
 
 publishing {
