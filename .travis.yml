@@ -10,7 +10,7 @@ jobs:
       - pushd ~/build/
       - git clone https://github.com/NyaaCat/NyaaCore NyaaCat/NyaaCore
       - pushd ./NyaaCat/NyaaCore
-      - git checkout -qf bce0fd55cefe09ed803a8fde49480ee704b307a4
+      - git checkout -qf 9175f70bb9ff289c74e1c9b18db54f50d3a78e83
       - popd
       - git clone https://github.com/NyaaCat/nyaautils NyaaCat/nyaautils
       - pushd ./NyaaCat/nyaautils
@@ -39,10 +39,10 @@ jobs:
       - grep "lc_test6" build.log
       - popd
       - pushd ./NyaaCat/NyaaCore
-      - git apply $PATCH_DIR/nc-bce0fd5.txt
+      - git apply $PATCH_DIR/nc-9175f70.txt
       - mkdir -p lib/
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
-      - gradle assemble  --stacktrace 2>&1 | tee build.log
+      - ./gradlew assemble  --stacktrace 2>&1 | tee build.log
       - grep "lc_test1" build.log
       - grep "lc_test2" build.log
       - grep "lc_test3" build.log
@@ -55,8 +55,8 @@ jobs:
         - JAVAC_OPTS='-ALANG_SHOW_DEBUG=true'
       before_cache:
         - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-        - rm -f  $HOME/.gradle/caches/4.1/fileHashes/fileHashes.bin
-        - rm -f  $HOME/.gradle/caches/4.1/fileHashes/fileHashes.lock
+        - rm -f  $HOME/.gradle/caches/*/fileHashes/fileHashes.bin
+        - rm -f  $HOME/.gradle/caches/*/fileHashes/fileHashes.lock
         - rm -f  $HOME/.gradle/caches/transforms-1/transforms-1.lock
         - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
       cache:
@@ -75,7 +75,7 @@ jobs:
       - pushd ~/build/
       - git clone https://github.com/NyaaCat/NyaaCore NyaaCat/NyaaCore
       - pushd ./NyaaCat/NyaaCore
-      - git checkout -qf bce0fd55cefe09ed803a8fde49480ee704b307a4
+      - git checkout -qf 9175f70bb9ff289c74e1c9b18db54f50d3a78e83
       - popd
       - git clone https://github.com/NyaaCat/nyaautils NyaaCat/nyaautils
       - pushd ./NyaaCat/nyaautils
@@ -101,7 +101,7 @@ jobs:
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
       - cp -R $GRADLEW_LC .
       - cp $GRADLEW_SH_LC .
-      - ./gradlew assemble  --stacktrace 2>&1 | tee build.log
+      - gradle assemble  --stacktrace 2>&1 | tee build.log
       - grep "lc_test1" build.log
       - grep "lc_test2" build.log
       - grep "lc_test3" build.log
@@ -110,7 +110,7 @@ jobs:
       - grep "lc_test6" build.log
       - popd
       - pushd ./NyaaCat/NyaaCore
-      - git apply $PATCH_DIR/nc-bce0fd5.txt
+      - git apply $PATCH_DIR/nc-9175f70.txt
       - mkdir -p lib/
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
       - cp -R $GRADLEW_LC .
@@ -128,8 +128,8 @@ jobs:
         - JAVAC_OPTS='-ALANG_SHOW_DEBUG=true'
       before_cache:
         - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-        - rm -f  $HOME/.gradle/caches/4.1/fileHashes/fileHashes.bin
-        - rm -f  $HOME/.gradle/caches/4.1/fileHashes/fileHashes.lock
+        - rm -f  $HOME/.gradle/caches/*/fileHashes/fileHashes.bin
+        - rm -f  $HOME/.gradle/caches/*/fileHashes/fileHashes.lock
         - rm -f  $HOME/.gradle/caches/transforms-1/transforms-1.lock
         - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
       cache:
