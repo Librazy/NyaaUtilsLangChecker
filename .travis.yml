@@ -14,7 +14,7 @@ jobs:
       - popd
       - git clone https://github.com/NyaaCat/nyaautils NyaaCat/nyaautils
       - pushd ./NyaaCat/nyaautils
-      - git checkout -qf 05a4f021ab8d4a948f67e3ebe8114de2c6fbb235
+      - git checkout -qf 7c7deb1b0981b29ea0a0325ba533b43e1a21ebe5
       - popd
       - export NYAACORE_LANG_DIR=`readlink -f ./NyaaCat/NyaaCore/src/main/resources/lang/`
       - popd
@@ -27,10 +27,10 @@ jobs:
       - echo $PATCH_DIR
       - pushd ~/build/
       - pushd ./NyaaCat/nyaautils
-      - git apply $PATCH_DIR/nu-05a4f02.txt
+      - git apply $PATCH_DIR/nu-7c7deb1.txt
       - mkdir -p lib/
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
-      - gradle assemble --stacktrace 2>&1 | tee build.log
+      - ./gradlew assemble --stacktrace 2>&1 | tee build.log
       - grep "lc_test1" build.log
       - grep "lc_test2" build.log
       - grep "lc_test3" build.log
@@ -79,7 +79,7 @@ jobs:
       - popd
       - git clone https://github.com/NyaaCat/nyaautils NyaaCat/nyaautils
       - pushd ./NyaaCat/nyaautils
-      - git checkout -qf 05a4f021ab8d4a948f67e3ebe8114de2c6fbb235
+      - git checkout -qf 7c7deb1b0981b29ea0a0325ba533b43e1a21ebe5
       - popd
       - export NYAACORE_LANG_DIR=`readlink -f ./NyaaCat/NyaaCore/src/main/resources/lang/`
       - popd
@@ -96,12 +96,12 @@ jobs:
       - echo $GRADLEW_SH_LC
       - pushd ~/build/
       - pushd ./NyaaCat/nyaautils
-      - git apply $PATCH_DIR/nu-05a4f02.txt
+      - git apply $PATCH_DIR/nu-7c7deb1.txt
       - mkdir -p lib/
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
       - cp -R $GRADLEW_LC .
       - cp $GRADLEW_SH_LC .
-      - gradle assemble  --stacktrace 2>&1 | tee build.log
+      - ./gradlew assemble --stacktrace 2>&1 | tee build.log
       - grep "lc_test1" build.log
       - grep "lc_test2" build.log
       - grep "lc_test3" build.log
