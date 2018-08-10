@@ -10,11 +10,11 @@ jobs:
       - pushd ~/build/
       - git clone https://github.com/NyaaCat/NyaaCore NyaaCat/NyaaCore
       - pushd ./NyaaCat/NyaaCore
-      - git checkout -qf 2f279c948020469115537e4f71e149c8143ea047
+      - git checkout -qf bce0fd55cefe09ed803a8fde49480ee704b307a4
       - popd
       - git clone https://github.com/NyaaCat/nyaautils NyaaCat/nyaautils
       - pushd ./NyaaCat/nyaautils
-      - git checkout -qf cb6576de85d0eaa4302ce85862962ea054b9e41c
+      - git checkout -qf 05a4f021ab8d4a948f67e3ebe8114de2c6fbb235
       - popd
       - export NYAACORE_LANG_DIR=`readlink -f ./NyaaCat/NyaaCore/src/main/resources/lang/`
       - popd
@@ -27,7 +27,7 @@ jobs:
       - echo $PATCH_DIR
       - pushd ~/build/
       - pushd ./NyaaCat/nyaautils
-      - git apply $PATCH_DIR/nu-cb6576d.txt
+      - git apply $PATCH_DIR/nu-05a4f02.txt
       - mkdir -p lib/
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
       - gradle assemble --stacktrace 2>&1 | tee build.log
@@ -39,7 +39,7 @@ jobs:
       - grep "lc_test6" build.log
       - popd
       - pushd ./NyaaCat/NyaaCore
-      - git apply $PATCH_DIR/nc-2f279c9.txt
+      - git apply $PATCH_DIR/nc-bce0fd5.txt
       - mkdir -p lib/
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
       - gradle assemble  --stacktrace 2>&1 | tee build.log
@@ -75,11 +75,11 @@ jobs:
       - pushd ~/build/
       - git clone https://github.com/NyaaCat/NyaaCore NyaaCat/NyaaCore
       - pushd ./NyaaCat/NyaaCore
-      - git checkout -qf 2f279c948020469115537e4f71e149c8143ea047
+      - git checkout -qf bce0fd55cefe09ed803a8fde49480ee704b307a4
       - popd
       - git clone https://github.com/NyaaCat/nyaautils NyaaCat/nyaautils
       - pushd ./NyaaCat/nyaautils
-      - git checkout -qf cb6576de85d0eaa4302ce85862962ea054b9e41c
+      - git checkout -qf 05a4f021ab8d4a948f67e3ebe8114de2c6fbb235
       - popd
       - export NYAACORE_LANG_DIR=`readlink -f ./NyaaCat/NyaaCore/src/main/resources/lang/`
       - popd
@@ -96,7 +96,7 @@ jobs:
       - echo $GRADLEW_SH_LC
       - pushd ~/build/
       - pushd ./NyaaCat/nyaautils
-      - git apply $PATCH_DIR/nu-cb6576d.txt
+      - git apply $PATCH_DIR/nu-05a4f02.txt
       - mkdir -p lib/
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
       - cp -R $GRADLEW_LC .
@@ -110,7 +110,7 @@ jobs:
       - grep "lc_test6" build.log
       - popd
       - pushd ./NyaaCat/NyaaCore
-      - git apply $PATCH_DIR/nc-2f279c9.txt
+      - git apply $PATCH_DIR/nc-bce0fd5.txt
       - mkdir -p lib/
       - cp $BUILT_JAR ./lib/NyaaUtilsLangChecker.jar
       - cp -R $GRADLEW_LC .
@@ -154,15 +154,18 @@ jobs:
       - git push origin HEAD:$TRAVIS_BRANCH -q --follow-tags
       - gem install octokit -v 4.3.0
       - ./gradlew publish
-      - cd ..
-      - git clone -b maven-repo $GIT_ORIGIN_URL NyaaUtilsLangChecker-mvn
-      - cp -r NyaaUtilsLangChecker/build/repo/org NyaaUtilsLangChecker-mvn/
-      - cd NyaaUtilsLangChecker-mvn
-      - git config credential.helper "store --file=.git/credentials"
-      - echo "https://$GITHUB_KEY:@github.com" > .git/credentials
-      - git add .
-      - git commit -m "auto generated maven repo"
-      - git push --follow-tags
+      - |
+        if [ $PUBLISH_MAVEN ]; then
+          cd ..;
+          git clone -b maven-repo $MAVEN_REPO_URL mvn;
+          cp -r NyaaUtilsLangChecker/build/repo/org mvn/;
+          cd mvn;
+          git config credential.helper "store --file=.git/credentials";
+          echo "https://$GITHUB_KEY:@github.com" > .git/credentials;
+          git add .;
+          git commit -m "auto generated maven repo";
+          git push --follow-tags;
+        fi
       - cd ../NyaaUtilsLangChecker
       deploy:
       - provider: releases

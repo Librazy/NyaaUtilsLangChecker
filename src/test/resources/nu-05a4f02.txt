@@ -1,30 +1,30 @@
 diff --git a/build.gradle b/build.gradle
-index ee99c71..34ede7d 100644
+index 2682623..febcb90 100644
 --- a/build.gradle
 +++ b/build.gradle
-@@ -52,14 +52,14 @@ dependencies {
+@@ -67,7 +67,7 @@ dependencies {
      compile files('lib/LocketteProAPI.jar')
      compile files('lib/EssentialsX-2.0.1-468.jar')
      compile 'com.sk89q.worldedit:worldedit-bukkit:6.1.5'
--    compile 'org.librazy:NyaaUtilsLangChecker:1.0-SNAPSHOT'
--    processor 'org.librazy:NyaaUtilsLangChecker:1.0-SNAPSHOT'
-+    processor 'org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT'
-+    processor files('lib/NyaaUtilsLangChecker.jar')
- }
- 
+-    compile 'org.librazy:NyaaUtilsLangChecker:2.0-SNAPSHOT'
++    compile files('lib/NyaaUtilsLangChecker.jar')
+     compile('com.meowj:LangUtils:1.9') {
+         transitive = false
+     }
+@@ -76,7 +76,7 @@ dependencies {
  String nyaaCoreLangDir = System.getenv("NYAACORE_LANG_DIR")
  
  compileJava {
--    options.compilerArgs += ["-Xplugin:NyaaUtilsLangAnnotationProcessor", "-Xlint:deprecation", "-Xlint:unchecked"]
-+    options.compilerArgs += ["-Xplugin:NyaaUtilsLangAnnotationProcessor", "-Xlint:deprecation", "-Xlint:unchecked", "-ALANG_SHOW_DEBUG=true"]
+-    options.compilerArgs += ["-Xplugin:NyaaUtilsLangAnnotationProcessor", "-Xlint:deprecation"]
++    options.compilerArgs += ["-Xplugin:NyaaUtilsLangAnnotationProcessor", "-Xlint:deprecation", "-ALANG_SHOW_DEBUG=true"]
      if (nyaaCoreLangDir != null) {
          options.compilerArgs += ["-ALANG_DIR_ADDITIONAL_PATH=" + nyaaCoreLangDir]
      }
 diff --git a/src/main/java/cat/nyaa/nyaautils/CommandHandler.java b/src/main/java/cat/nyaa/nyaautils/CommandHandler.java
-index aa6444c..57a33a5 100644
+index 1de9277..d187a31 100644
 --- a/src/main/java/cat/nyaa/nyaautils/CommandHandler.java
 +++ b/src/main/java/cat/nyaa/nyaautils/CommandHandler.java
-@@ -70,7 +70,7 @@ public class CommandHandler extends CommandReceiver<NyaaUtils> {
+@@ -78,7 +78,7 @@ public class CommandHandler extends CommandReceiver {
      @SubCommand(value = "show", permission = "nu.show")
      public void commandShow(CommandSender sender, Arguments args) {
          ItemStack item = getItemInHand(sender);
@@ -34,10 +34,10 @@ index aa6444c..57a33a5 100644
  
      /* launch the player into the air and open their elytra */
 diff --git a/src/main/java/cat/nyaa/nyaautils/elytra/ElytraCommands.java b/src/main/java/cat/nyaa/nyaautils/elytra/ElytraCommands.java
-index 289aeec..3084b5d 100644
+index 28c8938..3cd5d65 100644
 --- a/src/main/java/cat/nyaa/nyaautils/elytra/ElytraCommands.java
 +++ b/src/main/java/cat/nyaa/nyaautils/elytra/ElytraCommands.java
-@@ -56,7 +56,7 @@ public class ElytraCommands extends CommandReceiver<NyaaUtils> {
+@@ -56,7 +56,7 @@ public class ElytraCommands extends CommandReceiver {
                      FuelItem fuel = new FuelItem(fuelID, item.clone(), durability);
                      plugin.cfg.fuelConfig.fuel.put(fuelID, fuel.clone());
                      plugin.cfg.save();
@@ -47,10 +47,10 @@ index 289aeec..3084b5d 100644
                  }
              } else {
 diff --git a/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectListener.java b/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectListener.java
-index 287780b..1e1020b 100644
+index 38d2691..3c8ef7e 100644
 --- a/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectListener.java
 +++ b/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectListener.java
-@@ -43,7 +43,7 @@ public class LootProtectListener implements Listener {
+@@ -64,7 +64,7 @@ public class LootProtectListener implements Listener {
          Player p = null;
          if (plugin.cfg.lootProtectMode == LootProtectMode.MAX_DAMAGE) {
              p = plugin.dsListener.getMaxDamagePlayer(ev.getEntity());
@@ -60,7 +60,7 @@ index 287780b..1e1020b 100644
          }
          if (p == null) return;
 diff --git a/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectMode.java b/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectMode.java
-index 203ce1e..0fa4083 100644
+index 61b61a9..2d1b54c 100644
 --- a/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectMode.java
 +++ b/src/main/java/cat/nyaa/nyaautils/lootprotect/LootProtectMode.java
 @@ -7,5 +7,5 @@ import org.librazy.nclangchecker.LangKeyType;
@@ -71,10 +71,10 @@ index 203ce1e..0fa4083 100644
 +    lc_test4;
  }
 diff --git a/src/main/java/cat/nyaa/nyaautils/realm/RealmCommands.java b/src/main/java/cat/nyaa/nyaautils/realm/RealmCommands.java
-index 4d5cfb5..800cd19 100644
+index 61bc6c4..2445b79 100644
 --- a/src/main/java/cat/nyaa/nyaautils/realm/RealmCommands.java
 +++ b/src/main/java/cat/nyaa/nyaautils/realm/RealmCommands.java
-@@ -53,7 +53,7 @@ public class RealmCommands extends CommandReceiver<NyaaUtils> {
+@@ -53,7 +53,7 @@ public class RealmCommands extends CommandReceiver {
                  String playerName = args.next();
                  owner = Bukkit.getOfflinePlayer(playerName);
                  if (owner == null) {
@@ -83,7 +83,7 @@ index 4d5cfb5..800cd19 100644
                      return;
                  }
              } else {
-@@ -92,7 +92,7 @@ public class RealmCommands extends CommandReceiver<NyaaUtils> {
+@@ -92,7 +92,7 @@ public class RealmCommands extends CommandReceiver {
              msg(sender, "user.realm.no_realm");
              return;
          }
@@ -93,10 +93,10 @@ index 4d5cfb5..800cd19 100644
          msg(sender, "user.realm.info_0", realm.getName(), type, realm.getPriority(), owner);
          msg(sender, "user.realm.info_1", realm.getWorld(),
 diff --git a/src/main/java/cat/nyaa/nyaautils/repair/RepairCommands.java b/src/main/java/cat/nyaa/nyaautils/repair/RepairCommands.java
-index 9233e37..2299e13 100644
+index 51e5523..5dca1b1 100644
 --- a/src/main/java/cat/nyaa/nyaautils/repair/RepairCommands.java
 +++ b/src/main/java/cat/nyaa/nyaautils/repair/RepairCommands.java
-@@ -51,7 +51,7 @@ public class RepairCommands extends CommandReceiver<NyaaUtils> {
+@@ -51,7 +51,7 @@ public class RepairCommands extends CommandReceiver {
      public void repairInfo(CommandSender sender, Arguments args) {
          ItemStack item = getItemInHand(sender);
          RepairInstance info = new RepairInstance(item, plugin.cfg.repair, plugin);

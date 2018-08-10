@@ -1,36 +1,39 @@
 diff --git a/build.gradle b/build.gradle
-index d443e37..989a6b2 100644
+index d9b5e87..cbed87a 100644
 --- a/build.gradle
 +++ b/build.gradle
-@@ -38,11 +38,12 @@ repositories {
- dependencies {
-     compile 'org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT'
-     compile 'net.milkbowl.vault:VaultAPI:1.6'
--    processor 'org.librazy:NyaaUtilsLangChecker:1.0-SNAPSHOT'
-+    processor 'org.spigotmc:spigot-api:1.11.2-R0.1-SNAPSHOT'
-+    processor files('lib/NyaaUtilsLangChecker.jar')
+@@ -59,7 +59,7 @@ dependencies {
+     api "org.spigotmc:spigot-api:$minecraftVersion-R0.1-SNAPSHOT"
+     api 'javax.persistence:javax.persistence-api:2.2'
+     shadow 'javax.persistence:javax.persistence-api:2.2'
+-    annotationProcessor 'org.librazy:NyaaUtilsLangChecker:2.0-SNAPSHOT'
++    annotationProcessor files('lib/NyaaUtilsLangChecker.jar')
+     annotationProcessor "org.spigotmc:spigot-api:$minecraftVersion-R0.1-SNAPSHOT"
+     compileOnly 'org.librazy:NyaaUtilsLangChecker:2.0-SNAPSHOT'
+     compileOnly('net.milkbowl.vault:VaultAPI:1.6') {
+@@ -76,7 +76,7 @@ dependencies {
  }
  
  compileJava {
--    options.compilerArgs += ["-Xplugin:NyaaUtilsLangAnnotationProcessor", "-Xlint:deprecation"]
-+    options.compilerArgs += ["-Xplugin:NyaaUtilsLangAnnotationProcessor", "-Xlint:deprecation", "-ALANG_SHOW_DEBUG=true"]
+-    options.compilerArgs += ["-Xplugin:NyaaUtilsLangAnnotationProcessor", "-Xlint:deprecation,unchecked,rawtypes"]
++    options.compilerArgs += ["-Xplugin:NyaaUtilsLangAnnotationProcessor", "-Xlint:deprecation,unchecked,rawtypes", "-ALANG_SHOW_DEBUG=true"]
  }
  
  publishing {
 diff --git a/src/main/java/cat/nyaa/nyaacore/CommandReceiver.java b/src/main/java/cat/nyaa/nyaacore/CommandReceiver.java
-index 804045c..f444d10 100644
+index 288f4d1..f2275d0 100644
 --- a/src/main/java/cat/nyaa/nyaacore/CommandReceiver.java
 +++ b/src/main/java/cat/nyaa/nyaacore/CommandReceiver.java
-@@ -136,7 +136,7 @@ public abstract class CommandReceiver<T extends JavaPlugin> implements CommandEx
-                         f.set(this, obj);
-                     }
+@@ -138,7 +138,7 @@ public abstract class CommandReceiver implements CommandExecutor, TabCompleter {
+                     subCommandClasses.put(subCommandName, obj);
+                     if (!anno.permission().isEmpty()) subCommandPermission.put(subCommandName, anno.permission());
                  } catch (ReflectiveOperationException ex) {
 -                    plugin.getLogger().warning(i18n.getFormatted("internal.error.bad_subcommand", f.toString()));
 +                    plugin.getLogger().warning(i18n.getFormatted("internal.error.lc_test1", f.toString()));
-                     obj = null;
                      ex.printStackTrace();
                  }
-@@ -195,9 +195,9 @@ public abstract class CommandReceiver<T extends JavaPlugin> implements CommandEx
+             } else {
+@@ -209,9 +209,9 @@ public abstract class CommandReceiver implements CommandExecutor, TabCompleter {
                  else
                      throw new RuntimeException("Failed to invoke subcommand", ex);
              }
@@ -42,7 +45,7 @@ index 804045c..f444d10 100644
          } catch (NoItemInHandException ex) {
              msg(sender, ex.isOffHand ? "internal.error.no_item_offhand" : "internal.error.no_item_hand");
          } catch (BadCommandException ex) {
-@@ -409,7 +409,7 @@ public abstract class CommandReceiver<T extends JavaPlugin> implements CommandEx
+@@ -431,7 +431,7 @@ public abstract class CommandReceiver implements CommandExecutor, TabCompleter {
  
          public int nextInt() {
              String str = next();
@@ -51,7 +54,7 @@ index 804045c..f444d10 100644
              if (str.endsWith("k")) str = str.substring(0, str.length() - 1) + "000";
              try {
                  return Integer.parseInt(str);
-@@ -447,7 +447,7 @@ public abstract class CommandReceiver<T extends JavaPlugin> implements CommandEx
+@@ -469,7 +469,7 @@ public abstract class CommandReceiver implements CommandExecutor, TabCompleter {
                      throw new BadCommandException("internal.error.no_more_double");
                  return Double.parseDouble(new DecimalFormat(pattern).format(d));
              } catch (NumberFormatException ex) {
@@ -60,7 +63,7 @@ index 804045c..f444d10 100644
              } catch (IllegalArgumentException ex) {
                  throw new BadCommandException("internal.error.bad_decimal_pattern", ex, pattern);
              }
-@@ -539,16 +539,16 @@ public abstract class CommandReceiver<T extends JavaPlugin> implements CommandEx
+@@ -561,16 +561,16 @@ public abstract class CommandReceiver implements CommandExecutor, TabCompleter {
          /**
           * get named argument as integer
           *
